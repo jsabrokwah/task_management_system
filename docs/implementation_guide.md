@@ -661,6 +661,13 @@ Follow the prompts to configure your deployment:
 # Get the S3 bucket name from CloudFormation outputs
 BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name task-management-system-dev --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" --output text)
 
+# Get the API Gateway URL
+API_URL=$(aws cloudformation describe-stacks --stack-name task-management-system-dev --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" --output text)
+
+echo "API URL: $API_URL"
+# Update the config.js file with the API URL
+# You'll need to modify config.js to use the API_URL
+
 # Deploy frontend files
 aws s3 sync ./frontend/ s3://$BUCKET_NAME/
 
@@ -668,6 +675,12 @@ aws s3 sync ./frontend/ s3://$BUCKET_NAME/
 DISTRIBUTION_URL=$(aws cloudformation describe-stacks --stack-name task-management-system-dev --query "Stacks[0].Outputs[?OutputKey=='CloudFrontURL'].OutputValue" --output text)
 
 echo "Frontend deployed at: $DISTRIBUTION_URL"
+
+# Create the initial Admin user
+# Get Cognito UserPoolId
+aws cloudformation describe-stacks --stack-name task-management-system-dev --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
+# Update the USER_POOL_ID in the create_admin_user.sh.
+
 ```
 
 ### 4. Test the Deployment
