@@ -7,6 +7,10 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 
+# Set environment variables before importing modules
+os.environ['USERS_TABLE'] = 'Users-test'
+os.environ['TASKS_TABLE'] = 'Tasks-test'
+
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.admin.admin import lambda_handler

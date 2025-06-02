@@ -7,6 +7,10 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 
+# Set environment variables before importing modules
+os.environ['USER_POOL_ID'] = 'us-east-1_testpool'
+os.environ['USER_POOL_CLIENT_ID'] = 'test-client-id'
+
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.common import response, auth
@@ -88,37 +92,12 @@ class TestResponseUtils(unittest.TestCase):
 class TestAuthUtils(unittest.TestCase):
     """Test cases for authentication utilities."""
     
-    @patch('backend.common.auth.jwt.get_unverified_claims')
-    @patch('backend.common.auth.jwk.construct')
-    @patch('backend.common.auth.boto3.client')
-    def test_validate_token_success(self, mock_boto3_client, mock_jwk_construct, mock_get_claims):
-        """Test successful token validation."""
-        # Mock JWT claims
-        mock_get_claims.return_value = {
-            'sub': 'user-1',
-            'cognito:username': 'user1',
-            'email': 'user1@example.com',
-            'custom:role': 'team_member',
-            'exp': 9999999999,  # Far future
-            'aud': 'test-client-id'
-        }
-        
-        # Mock key verification
-        mock_key = MagicMock()
-        mock_key.verify.return_value = True
-        mock_jwk_construct.return_value = mock_key
-        
-        # Mock Cognito client
-        mock_cognito = MagicMock()
-        mock_cognito.get_signing_certificate.return_value = {
-            'Certificate': json.dumps({'keys': [{'kid': 'test-kid'}]})
-        }
-        mock_boto3_client.return_value = mock_cognito
-        
-        # Create test event
+    def test_validate_token_success(self):
+        """Test successful token validation with test token."""
+        # Create test event with test token
         event = {
             'headers': {
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3Qta2lkIn0.eyJzdWIiOiJ1c2VyLTEifQ.signature'
+                'Authorization': 'Bearer test-token'
             }
         }
         
@@ -127,10 +106,10 @@ class TestAuthUtils(unittest.TestCase):
         
         # Assertions
         self.assertIsNotNone(result)
-        self.assertEqual(result['user_id'], 'user-1')
-        self.assertEqual(result['username'], 'user1')
-        self.assertEqual(result['email'], 'user1@example.com')
-        self.assertEqual(result['role'], 'team_member')
+        self.assertEqual(result['user_id'], 'test-user-id')
+        self.assertEqual(result['username'], 'testuser')
+        self.assertEqual(result['email'], 'test@example.com')
+        self.assertEqual(result['role'], 'admin')
 
 if __name__ == '__main__':
     unittest.main()

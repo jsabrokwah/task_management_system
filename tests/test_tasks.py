@@ -7,6 +7,10 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 
+# Set environment variables before importing modules
+os.environ['TASKS_TABLE'] = 'Tasks-test'
+os.environ['NOTIFICATION_TOPIC'] = 'arn:aws:sns:us-east-1:123456789012:TestTopic'
+
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.tasks.tasks import lambda_handler
