@@ -32,7 +32,7 @@ aws configure
 
 ```bash
 git clone <repository-url>
-cd task-management-system
+cd task-management-system/backend
 ```
 
 ### 3. Create Virtual Environment
@@ -40,7 +40,8 @@ cd task-management-system
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txtcd task-management-system
+
 ```
 
 ## Project Structure

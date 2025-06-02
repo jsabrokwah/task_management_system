@@ -1,0 +1,366 @@
+AWSTemplateFormatVersion: '2010-09-09'  # Specifies the CloudFormation template version
+Transform: AWS::Serverless-2016-10-31  # Enables AWS SAM features for serverless applications
+Description: Task Management System - Serverless Application  # Description of the template
+
+Parameters:
+  Environment:  # Parameter to specify deployment environment
+    Type: String
+    Default: dev  # Default value if not specified
+    AllowedValues:  # Restricts input to only these values
+      - dev
+      - prod
+    Description: Environment name
+
+Globals:
+  Function:  # Global settings applied to all Lambda functions
+    Runtime: python3.12  # Python version for all Lambda functions
+    Timeout: 60  # Maximum execution time in seconds
+    MemorySize: 512  # Memory allocation in MB
+    Architectures:
+      - x86_64  # CPU architecture for Lambda functions
+    Environment:
+      Variables:  # Environment variables available to all functions
+        ENVIRONMENT: !Ref Environment  # References the Environment parameter
+
+Resources:
+  # DynamoDB Tables
+  UsersTable:
+    Type: AWS::DynamoDB::Table  # Creates a DynamoDB table for user data
+    Properties:
+      TableName: !Sub "Users-${Environment}"  # Dynamic name based on environment
+      BillingMode: PAY_PER_REQUEST  # On-demand capacity mode, pay for what you use
+      AttributeDefinitions:  # Define attributes that will be used in key schema or indexes
+        - AttributeName: UserID
+          AttributeType: S  # String data type
+        - AttributeName: Email
+          AttributeType: S
+      KeySchema:  # Primary key definition
+        - AttributeName: UserID
+          KeyType: HASH  # Partition key (primary key)
+      GlobalSecondaryIndexes:  # Secondary indexes for additional query patterns
+        - IndexName: EmailIndex  # Index to query users by email
+          KeySchema:
+            - AttributeName: Email
+              KeyType: HASH  # Partition key for this index
+          Projection:
+            ProjectionType: ALL  # All attributes are copied to the index
+
+  TasksTable:
+    Type: AWS::DynamoDB::Table  # Creates a DynamoDB table for task data
+    Properties:
+      TableName: !Sub "Tasks-${Environment}"  # Dynamic name based on environment
+      BillingMode: PAY_PER_REQUEST  # On-demand capacity mode
+      AttributeDefinitions:  # Define attributes used in keys and indexes
+        - AttributeName: TaskID
+          AttributeType: S  # String data type
+        - AttributeName: AssignedTo
+          AttributeType: S
+        - AttributeName: Status
+          AttributeType: S
+      KeySchema:  # Primary key definition
+        - AttributeName: TaskID
+          KeyType: HASH  # Partition key (primary key)
+      GlobalSecondaryIndexes:  # Secondary indexes for additional query patterns
+        - IndexName: AssignedToIndex  # Index to query tasks by assignee and status
+          KeySchema:
+            - AttributeName: AssignedTo
+              KeyType: HASH  # Partition key for this index
+            - AttributeName: Status
+              KeyType: RANGE  # Sort key for this index
+          Projection:
+            ProjectionType: ALL  # All attributes are copied to the index
+
+  NotificationsTable:
+    Type: AWS::DynamoDB::Table  # Creates a DynamoDB table for notification data
+    Properties:
+      TableName: !Sub "Notifications-${Environment}"  # Dynamic name based on environment
+      BillingMode: PAY_PER_REQUEST  # On-demand capacity mode
+      AttributeDefinitions:  # Define attributes used in keys and indexes
+        - AttributeName: NotificationID
+          AttributeType: S  # String data type
+        - AttributeName: UserID
+          AttributeType: S
+        - AttributeName: CreatedAt
+          AttributeType: S  # Timestamp stored as string
+      KeySchema:  # Primary key definition
+        - AttributeName: NotificationID
+          KeyType: HASH  # Partition key (primary key)
+      GlobalSecondaryIndexes:  # Secondary indexes for additional query patterns
+        - IndexName: UserNotificationsIndex  # Index to query notifications by user and creation time
+          KeySchema:
+            - AttributeName: UserID
+              KeyType: HASH  # Partition key for this index
+            - AttributeName: CreatedAt
+              KeyType: RANGE  # Sort key for this index (for chronological ordering)
+          Projection:
+            ProjectionType: ALL  # All attributes are copied to the index
+
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool  # Creates a Cognito User Pool for user authentication
+    Properties:
+      UserPoolName: !Sub "TaskManagementUserPool-${Environment}"  # Dynamic name based on environment
+      AutoVerifiedAttributes:  # Attributes that will be auto-verified during signup
+        - email  # Email verification will be sent automatically
+      UsernameAttributes:  # Attributes that can be used as username
+        - email  # Allow users to sign in with their email
+      Schema:  # User attributes configuration
+        - Name: email
+          AttributeDataType: String
+          Mutable: true  # Can be changed after creation
+          Required: true  # Must be provided during signup
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: role
+          AttributeDataType: String
+          Mutable: true
+          Required: false  # Optional attribute
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient  # Creates a client application for the User Pool
+    Properties:
+      ClientName: !Sub "TaskManagementClient-${Environment}"  # Dynamic name based on environment
+      UserPoolId: !Ref UserPool  # References the User Pool created above
+      GenerateSecret: false  # No client secret for browser-based applications
+      ExplicitAuthFlows:  # Authentication methods allowed
+        - ALLOW_USER_PASSWORD_AUTH  # Username and password authentication
+        - ALLOW_REFRESH_TOKEN_AUTH  # Allow refresh tokens for session extension
+        - ALLOW_USER_SRP_AUTH  # Secure Remote Password protocol
+
+  # SNS Topic for Notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic  # Creates an SNS topic for publishing notifications
+    Properties:
+      TopicName: !Sub "TaskNotifications-${Environment}"  # Dynamic name based on environment
+
+  # S3 Bucket for Frontend
+  WebsiteBucket:
+    Type: AWS::S3::Bucket  # Creates an S3 bucket to host the frontend website
+    Properties:
+      BucketName: !Sub "task-management-frontend-${Environment}-${AWS::AccountId}"  # Unique name with environment and account ID
+      WebsiteConfiguration:  # Configure bucket for static website hosting
+        IndexDocument: index.html  # Default page
+        ErrorDocument: error.html  # Error page
+      PublicAccessBlockConfiguration:  # Allow public access for website hosting
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy  # Creates a bucket policy for public read access
+    Properties:
+      Bucket: !Ref WebsiteBucket  # References the bucket created above
+      PolicyDocument:  # Policy document allowing public read access
+        Statement:
+          - Action:
+              - 's3:GetObject'  # Allow getting objects (reading files)
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${WebsiteBucket}/*"  # Apply to all objects in bucket
+            Principal: '*'  # Allow access to anyone
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution  # Creates a CloudFront CDN distribution
+    Properties:
+      DistributionConfig:
+        Origins:  # Define the origin(s) for content
+          - DomainName: !GetAtt WebsiteBucket.RegionalDomainName  # S3 bucket as origin
+            Id: S3Origin  # Identifier for this origin
+            S3OriginConfig:
+              OriginAccessIdentity: ''  # Empty for public bucket access
+        Enabled: true  # Distribution is active
+        DefaultRootObject: index.html  # Default page served
+        DefaultCacheBehavior:  # How CloudFront handles requests
+          AllowedMethods:  # HTTP methods allowed
+            - GET
+            - HEAD
+            - OPTIONS
+          TargetOriginId: S3Origin  # Which origin to use
+          ForwardedValues:  # What to forward to origin
+            QueryString: false  # Don't forward query strings
+            Cookies:
+              Forward: none  # Don't forward cookies
+          ViewerProtocolPolicy: redirect-to-https  # Force HTTPS
+        PriceClass: PriceClass_100  # Lowest cost option (US, Canada, Europe)
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true  # Use default CloudFront certificate
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api  # Creates an API Gateway for the backend APIs
+    Properties:
+      StageName: !Ref Environment  # Deployment stage (dev/prod)
+      Cors:  # Cross-Origin Resource Sharing configuration
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"  # HTTP methods allowed from other domains
+        AllowHeaders: "'Content-Type,Authorization'"  # Headers allowed in requests
+        AllowOrigin: "'*'"  # Allow requests from any origin
+
+  # Lambda Functions - Auth Module
+  AuthFunction:
+    Type: AWS::Serverless::Function  # Creates a Lambda function for authentication
+    Properties:
+      CodeUri: backend/auth/  # Path to the function code
+      Handler: auth.lambda_handler  # Function entry point
+      Policies:  # IAM permissions for the function
+        - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
+            TableName: !Ref UsersTable  # References the Users table
+        - Statement:  # Custom IAM policy statement
+            - Effect: Allow
+              Action:  # Cognito actions needed for user management
+                - cognito-idp:AdminInitiateAuth  # For user login
+                - cognito-idp:AdminCreateUser  # For user registration
+                - cognito-idp:AdminSetUserPassword  # For password management
+              Resource: !GetAtt UserPool.Arn  # References the User Pool
+      Environment:  # Environment variables for the function
+        Variables:
+          USERS_TABLE: !Ref UsersTable  # DynamoDB table name
+          USER_POOL_ID: !Ref UserPool  # Cognito User Pool ID
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient  # Cognito Client ID
+      Events:  # API Gateway event triggers
+        Login:  # Login endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway  # References the API Gateway
+            Path: /auth/login  # API path
+            Method: post  # HTTP method
+        Register:  # Registration endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/register
+            Method: post
+
+  # Lambda Functions - Task Module
+  TasksFunction:
+    Type: AWS::Serverless::Function  # Creates a Lambda function for task management
+    Properties:
+      CodeUri: backend/tasks/  # Path to the function code
+      Handler: tasks.lambda_handler  # Function entry point
+      Policies:  # IAM permissions for the function
+        - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
+            TableName: !Ref TasksTable  # References the Tasks table
+        - SNSPublishMessagePolicy:  # Allows publishing to SNS
+            TopicName: !GetAtt NotificationTopic.TopicName  # References the SNS topic
+      Environment:  # Environment variables for the function
+        Variables:
+          TASKS_TABLE: !Ref TasksTable  # DynamoDB table name
+          NOTIFICATION_TOPIC: !Ref NotificationTopic  # SNS topic ARN
+      Events:  # API Gateway event triggers
+        GetTasks:  # List all tasks endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /tasks
+            Method: get
+        CreateTask:  # Create new task endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /tasks
+            Method: post
+        GetTask:  # Get single task endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /tasks/{taskId}  # Path parameter for task ID
+            Method: get
+        UpdateTask:  # Update task endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /tasks/{taskId}
+            Method: put
+        UpdateTaskStatus:  # Update task status endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /tasks/{taskId}/status
+            Method: put
+
+  # Lambda Functions - Notification Module
+  NotificationsFunction:
+    Type: AWS::Serverless::Function  # Creates a Lambda function for notification management
+    Properties:
+      CodeUri: backend/notifications/  # Path to the function code
+      Handler: notifications.lambda_handler  # Function entry point
+      Policies:  # IAM permissions for the function
+        - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
+            TableName: !Ref NotificationsTable  # References the Notifications table
+        - SNSPublishMessagePolicy:  # Allows publishing to SNS
+            TopicName: !GetAtt NotificationTopic.TopicName  # References the SNS topic
+      Environment:  # Environment variables for the function
+        Variables:
+          NOTIFICATIONS_TABLE: !Ref NotificationsTable  # DynamoDB table name
+          NOTIFICATION_TOPIC: !Ref NotificationTopic  # SNS topic ARN
+      Events:  # API Gateway event triggers
+        GetNotifications:  # List user notifications endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /notifications
+            Method: get
+        MarkAsRead:  # Mark notification as read endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /notifications/{notificationId}/read  # Path parameter for notification ID
+            Method: put
+
+  # Lambda Function - Deadline Reminders
+  DeadlineReminderFunction:
+    Type: AWS::Serverless::Function  # Creates a Lambda function for deadline reminders
+    Properties:
+      CodeUri: backend/notifications/  # Path to the function code
+      Handler: deadline_reminders.lambda_handler  # Function entry point
+      Policies:  # IAM permissions for the function
+        - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
+            TableName: !Ref TasksTable  # References the Tasks table
+        - SNSPublishMessagePolicy:  # Allows publishing to SNS
+            TopicName: !GetAtt NotificationTopic.TopicName  # References the SNS topic
+      Environment:  # Environment variables for the function
+        Variables:
+          TASKS_TABLE: !Ref TasksTable  # DynamoDB table name
+          NOTIFICATION_TOPIC: !Ref NotificationTopic  # SNS topic ARN
+
+  # EventBridge Rule for Deadline Reminders
+  DeadlineReminderRule:
+    Type: AWS::Events::Rule  # Creates an EventBridge rule for scheduled execution
+    Properties:
+      Description: "Trigger deadline reminders daily"
+      ScheduleExpression: "cron(0 8 * * ? *)"  # Run daily at 8:00 AM UTC using cron expression
+      State: ENABLED  # Rule is active
+      Targets:  # Resources to invoke when the rule triggers
+        - Arn: !GetAtt DeadlineReminderFunction.Arn  # Target the deadline reminder Lambda
+          Id: "DeadlineReminderTarget"  # Identifier for this target
+
+  DeadlineReminderPermission:
+    Type: AWS::Lambda::Permission  # Creates permission for EventBridge to invoke Lambda
+    Properties:
+      Action: lambda:InvokeFunction  # Permission to invoke the function
+      FunctionName: !Ref DeadlineReminderFunction  # References the Lambda function
+      Principal: events.amazonaws.com  # EventBridge service principal
+      SourceArn: !GetAtt DeadlineReminderRule.Arn  # Restricts permission to this rule
+
+Outputs:  # Values that are returned after stack creation
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"  # Constructs the full API URL
+
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref UserPool  # References the User Pool ID for frontend configuration
+
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref UserPoolClient  # References the Client ID for frontend authentication
+
+  WebsiteBucketName:
+    Description: "S3 bucket for website hosting"
+    Value: !Ref WebsiteBucket  # References the S3 bucket name for frontend deployment
+
+  CloudFrontURL:
+    Description: "CloudFront Distribution URL"
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"  # Constructs the CloudFront URL for accessing the website
