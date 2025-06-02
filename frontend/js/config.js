@@ -3,7 +3,7 @@
  */
 const CONFIG = {
     // API endpoint base URL - replace with your actual API Gateway URL in production
-    API_URL: 'http://localhost:5000',
+    API_URL: 'https://o8v094rm2e.execute-api.eu-west-1.amazonaws.com/dev/',
     
     // Authentication settings
     AUTH: {

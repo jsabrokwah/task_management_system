@@ -1,0 +1,10 @@
+version = 0.1
+[task-management-system.deploy.parameters]
+stack_name = "task-management-system-dev"
+resolve_s3 = true
+s3_prefix = "task-management-system-dev"
+region = "eu-west-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=\"dev\""
+image_repositories = []
