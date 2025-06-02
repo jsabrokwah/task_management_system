@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="logo">
+                <h1>Task Management System</h1>
+            </div>
+            <div class="nav-links">
+                <a href="#" id="dashboard-link" class="active">Dashboard</a>
+                <a href="#" id="tasks-link">Tasks</a>
+                <a href="#" id="notifications-link">Notifications <span id="notification-badge" class="badge hidden">0</span></a>
+                <a href="#" id="profile-link">Profile</a>
+            </div>
+            <div class="user-info">
+                <span id="user-name">User</span>
+                <button id="logout-btn" class="btn btn-outline">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Login/Register Form (initially visible) -->
+            <div id="auth-container" class="auth-container">
+                <div class="auth-box">
+                    <div class="auth-tabs">
+                        <button id="login-tab" class="auth-tab active">Login</button>
+                        <button id="register-tab" class="auth-tab">Register</button>
+                    </div>
+                    
+                    <!-- Login Form -->
+                    <form id="login-form" class="auth-form">
+                        <h2>Login to Your Account</h2>
+                        <div class="form-group">
+                            <label for="login-username">Username</label>
+                            <input type="text" id="login-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <div id="login-error" class="error-message hidden"></div>
+                    </form>
+                    
+                    <!-- Register Form -->
+                    <form id="register-form" class="auth-form hidden">
+                        <h2>Create New Account</h2>
+                        <div class="form-group">
+                            <label for="register-username">Username</label>
+                            <input type="text" id="register-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" id="register-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-confirm-password">Confirm Password</label>
+                            <input type="password" id="register-confirm-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <div id="register-error" class="error-message hidden"></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Dashboard (initially hidden) -->
+            <div id="dashboard-container" class="dashboard-container hidden">
+                <h2>Dashboard</h2>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+                        <div class="stat-content">
+                            <h3>Total Tasks</h3>
+                            <p id="total-tasks">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-spinner"></i></div>
+                        <div class="stat-content">
+                            <h3>In Progress</h3>
+                            <p id="in-progress-tasks">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-content">
+                            <h3>Completed</h3>
+                            <p id="completed-tasks">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="stat-content">
+                            <h3>Overdue</h3>
+                            <p id="overdue-tasks">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin-only section -->
+                <div id="admin-dashboard" class="admin-section hidden">
+                    <h3>Team Performance</h3>
+                    <div class="team-performance">
+                        <canvas id="team-performance-chart"></canvas>
+                    </div>
+                    <h3>Upcoming Deadlines</h3>
+                    <div class="upcoming-deadlines">
+                        <table id="deadlines-table" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Assigned To</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deadlines-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Team member section -->
+                <div id="team-dashboard" class="team-section">
+                    <h3>My Tasks</h3>
+                    <div class="my-tasks">
+                        <div class="task-filters">
+                            <button class="btn btn-filter active" data-filter="all">All</button>
+                            <button class="btn btn-filter" data-filter="New">New</button>
+                            <button class="btn btn-filter" data-filter="In Progress">In Progress</button>
+                            <button class="btn btn-filter" data-filter="Completed">Completed</button>
+                            <button class="btn btn-filter" data-filter="Overdue">Overdue</button>
+                        </div>
+                        <div id="my-tasks-list" class="tasks-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Management (initially hidden) -->
+            <div id="tasks-container" class="tasks-container hidden">
+                <div class="tasks-header">
+                    <h2>Task Management</h2>
+                    <div id="admin-task-actions" class="admin-section hidden">
+                        <button id="create-task-btn" class="btn btn-primary">Create New Task</button>
+                    </div>
+                </div>
+                
+                <div class="tasks-filters">
+                    <div class="filter-group">
+                        <label for="status-filter">Status:</label>
+                        <select id="status-filter">
+                            <option value="all">All</option>
+                            <option value="New">New</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="priority-filter">Priority:</label>
+                        <select id="priority-filter">
+                            <option value="all">All</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="search-tasks">Search:</label>
+                        <input type="text" id="search-tasks" placeholder="Search tasks...">
+                    </div>
+                </div>
+                
+                <div class="tasks-list-container">
+                    <table id="tasks-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Deadline</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notifications (initially hidden) -->
+            <div id="notifications-container" class="notifications-container hidden">
+                <h2>Notifications</h2>
+                <div class="notifications-header">
+                    <button id="mark-all-read" class="btn btn-outline">Mark All as Read</button>
+                    <div class="notifications-filter">
+                        <label for="notification-filter">Show:</label>
+                        <select id="notification-filter">
+                            <option value="all">All</option>
+                            <option value="unread">Unread</option>
+                            <option value="read">Read</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="notifications-list" class="notifications-list"></div>
+            </div>
+
+            <!-- User Profile (initially hidden) -->
+            <div id="profile-container" class="profile-container hidden">
+                <h2>User Profile</h2>
+                <div class="profile-content">
+                    <div class="profile-info">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="profile-details">
+                            <h3 id="profile-username">Username</h3>
+                            <p id="profile-email">email@example.com</p>
+                            <p id="profile-role">Role: Team Member</p>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-form">
+                        <h3>Update Profile</h3>
+                        <form id="update-profile-form">
+                            <div class="form-group">
+                                <label for="update-email">Email</label>
+                                <input type="email" id="update-email">
+                            </div>
+                            <div class="form-group">
+                                <label for="current-password">Current Password</label>
+                                <input type="password" id="current-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-password">New Password</label>
+                                <input type="password" id="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm-new-password">Confirm New Password</label>
+                                <input type="password" id="confirm-new-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </form>
+                    </div>
+                    
+                    <div class="notification-preferences">
+                        <h3>Notification Preferences</h3>
+                        <form id="notification-preferences-form">
+                            <div class="form-check">
+                                <input type="checkbox" id="email-notifications" checked>
+                                <label for="email-notifications">Email Notifications</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="task-assignments" checked>
+                                <label for="task-assignments">Task Assignments</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="deadline-reminders" checked>
+                                <label for="deadline-reminders">Deadline Reminders</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="status-updates" checked>
+                                <label for="status-updates">Status Updates</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Preferences</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for creating/editing tasks -->
+    <div id="task-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title">Create New Task</h2>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                <div class="form-group">
+                    <label for="task-title">Title</label>
+                    <input type="text" id="task-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description" rows="3" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-priority">Priority</label>
+                        <select id="task-priority" required>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-status">Status</label>
+                        <select id="task-status" required>
+                            <option value="New">New</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-deadline">Deadline</label>
+                        <input type="datetime-local" id="task-deadline" required>
+                    </div>
+                    <div class="form-group" id="assigned-to-group">
+                        <label for="task-assigned-to">Assign To</label>
+                        <select id="task-assigned-to" required></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="task-notes">Notes</label>
+                    <textarea id="task-notes" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancel-task">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task View Modal -->
+    <div id="task-view-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="view-task-title">Task Details</h2>
+            <div class="task-details">
+                <div class="detail-row">
+                    <span class="detail-label">Description:</span>
+                    <span id="view-task-description" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Priority:</span>
+                    <span id="view-task-priority" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span id="view-task-status" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Deadline:</span>
+                    <span id="view-task-deadline" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created By:</span>
+                    <span id="view-task-created-by" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Assigned To:</span>
+                    <span id="view-task-assigned-to" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created At:</span>
+                    <span id="view-task-created-at" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Notes:</span>
+                    <span id="view-task-notes" class="detail-value"></span>
+                </div>
+            </div>
+            <div class="task-actions">
+                <div id="team-member-actions">
+                    <button id="update-status-btn" class="btn btn-primary">Update Status</button>
+                </div>
+                <div id="admin-actions" class="admin-section hidden">
+                    <button id="edit-task-btn" class="btn btn-outline">Edit Task</button>
+                    <button id="delete-task-btn" class="btn btn-danger">Delete Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="status-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Update Task Status</h2>
+            <form id="status-form">
+                <input type="hidden" id="status-task-id">
+                <div class="form-group">
+                    <label for="new-status">New Status</label>
+                    <select id="new-status" required>
+                        <option value="New">New</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="status-notes">Notes</label>
+                    <textarea id="status-notes" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancel-status">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/mock-api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/app-tasks.js"></script>
+    <script src="js/app-notifications.js"></script>
+    <script src="js/app-profile.js"></script>
+    <script src="js/app-init.js"></script>
+</body>
+</html>

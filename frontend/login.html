@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Task Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-container">
+            <div class="auth-box">
+                <div class="auth-logo">
+                    <h1>Task Management System</h1>
+                </div>
+                
+                <div class="auth-tabs">
+                    <button id="login-tab" class="auth-tab active">Login</button>
+                    <button id="register-tab" class="auth-tab">Register</button>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form">
+                    <h2>Login to Your Account</h2>
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="login-error" class="error-message hidden"></div>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form hidden">
+                    <h2>Create New Account</h2>
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm-password">Confirm Password</label>
+                        <input type="password" id="register-confirm-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <div id="register-error" class="error-message hidden"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // DOM Elements
+        const elements = {
+            loginTab: document.getElementById('login-tab'),
+            registerTab: document.getElementById('register-tab'),
+            loginForm: document.getElementById('login-form'),
+            registerForm: document.getElementById('register-form'),
+            loginError: document.getElementById('login-error'),
+            registerError: document.getElementById('register-error'),
+            loadingSpinner: document.getElementById('loading-spinner')
+        };
+
+        // Initialize
+        function init() {
+            // Set up event listeners
+            elements.loginTab.addEventListener('click', () => switchTab('login'));
+            elements.registerTab.addEventListener('click', () => switchTab('register'));
+            elements.loginForm.addEventListener('submit', handleLogin);
+            elements.registerForm.addEventListener('submit', handleRegister);
+            
+            // Check if user is already logged in
+            if (authService.isAuthenticated()) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Switch between login and register tabs
+        function switchTab(tab) {
+            if (tab === 'login') {
+                elements.loginTab.classList.add('active');
+                elements.registerTab.classList.remove('active');
+                elements.loginForm.classList.remove('hidden');
+                elements.registerForm.classList.add('hidden');
+            } else {
+                elements.loginTab.classList.remove('active');
+                elements.registerTab.classList.add('active');
+                elements.loginForm.classList.add('hidden');
+                elements.registerForm.classList.remove('hidden');
+            }
+        }
+
+        // Handle login form submission
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                showLoading();
+                await authService.login(username, password);
+                hideLoading();
+                window.location.href = 'index.html';
+            } catch (error) {
+                hideLoading();
+                elements.loginError.textContent = error.message || 'Login failed. Please try again.';
+                elements.loginError.classList.remove('hidden');
+            }
+        }
+
+        // Handle register form submission
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                elements.registerError.textContent = 'Passwords do not match';
+                elements.registerError.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                showLoading();
+                await authService.register({ username, email, password });
+                hideLoading();
+                
+                // Switch to login tab and show success message
+                switchTab('login');
+                alert('Registration successful! Please log in.');
+            } catch (error) {
+                hideLoading();
+                elements.registerError.textContent = error.message || 'Registration failed. Please try again.';
+                elements.registerError.classList.remove('hidden');
+            }
+        }
+
+        // Show loading spinner
+        function showLoading() {
+            elements.loadingSpinner.classList.remove('hidden');
+        }
+
+        // Hide loading spinner
+        function hideLoading() {
+            elements.loadingSpinner.classList.add('hidden');
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
