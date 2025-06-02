@@ -4,7 +4,7 @@
  */
 
 // Enable or disable mock API
-const MOCK_API_ENABLED = false;
+const MOCK_API_ENABLED = true;
 
 // Mock data
 const MOCK_DATA = {

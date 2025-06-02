@@ -1,49 +1,140 @@
 /**
- * Profile UI Functions
- * Extension of app.js for profile-related UI functionality
+ * Profile UI
+ * Handles profile-specific UI functionality
  */
 
-// Load profile data
-async function loadProfile() {
+// DOM Elements
+const profileElements = {
+    // Profile info
+    profileUsername: document.getElementById('profile-username'),
+    profileEmail: document.getElementById('profile-email'),
+    profileRole: document.getElementById('profile-role'),
+    
+    // Update profile form
+    updateProfileForm: document.getElementById('update-profile-form'),
+    updateEmail: document.getElementById('update-email'),
+    currentPassword: document.getElementById('current-password'),
+    newPassword: document.getElementById('new-password'),
+    confirmNewPassword: document.getElementById('confirm-new-password'),
+    
+    // Notification preferences form
+    notificationPreferencesForm: document.getElementById('notification-preferences-form'),
+    emailNotifications: document.getElementById('email-notifications'),
+    taskAssignments: document.getElementById('task-assignments'),
+    deadlineReminders: document.getElementById('deadline-reminders'),
+    statusUpdates: document.getElementById('status-updates')
+};
+
+/**
+ * Initialize profile
+ */
+function initProfile() {
+    // Set up event listeners
+    setupProfileEventListeners();
+}
+
+/**
+ * Set up profile-related event listeners
+ */
+function setupProfileEventListeners() {
+    // Update profile form
+    profileElements.updateProfileForm.addEventListener('submit', handleUpdateProfileSubmit);
+    
+    // Notification preferences form
+    profileElements.notificationPreferencesForm.addEventListener('submit', handleUpdatePreferencesSubmit);
+}
+
+/**
+ * Refresh profile data and display
+ */
+async function refreshProfile() {
     try {
         showLoading();
         
         // Get user profile
-        const user = authService.getUser();
+        const profile = await profileService.getProfile();
         
-        // Display profile information
-        profileService.displayProfile(user);
+        // Display profile info
+        displayProfileInfo(profile);
         
         // Get notification preferences
-        const preferences = await profileService.getNotificationPreferences();
+        const preferences = await notificationsService.getPreferences();
         
-        // Update notification preferences form
-        document.getElementById('email-notifications').checked = preferences.emailNotifications;
-        document.getElementById('task-assignments').checked = preferences.taskAssignments;
-        document.getElementById('deadline-reminders').checked = preferences.deadlineReminders;
-        document.getElementById('status-updates').checked = preferences.statusUpdates;
+        // Display notification preferences
+        displayNotificationPreferences(preferences);
         
         hideLoading();
     } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error('Error refreshing profile:', error);
         hideLoading();
-        showError('Failed to load profile data');
     }
 }
 
-// Handle profile update form submission
-async function handleProfileUpdate(e) {
+/**
+ * Display profile information
+ * @param {Object} profile - User profile data
+ */
+function displayProfileInfo(profile) {
+    // Update profile info
+    profileElements.profileUsername.textContent = profile.username || profile.email;
+    profileElements.profileEmail.textContent = profile.email;
+    profileElements.profileRole.textContent = `Role: ${formatRole(profile.role)}`;
+    
+    // Update form fields
+    profileElements.updateEmail.value = profile.email;
+}
+
+/**
+ * Format role for display
+ * @param {string} role - User role
+ * @returns {string} - Formatted role
+ */
+function formatRole(role) {
+    switch (role) {
+        case CONFIG.USER_ROLES.ADMIN:
+            return 'Administrator';
+        case CONFIG.USER_ROLES.TEAM_MEMBER:
+            return 'Team Member';
+        default:
+            return role;
+    }
+}
+
+/**
+ * Display notification preferences
+ * @param {Object} preferences - Notification preferences
+ */
+function displayNotificationPreferences(preferences) {
+    profileElements.emailNotifications.checked = preferences.emailNotifications;
+    profileElements.taskAssignments.checked = preferences.taskAssignments;
+    profileElements.deadlineReminders.checked = preferences.deadlineReminders;
+    profileElements.statusUpdates.checked = preferences.statusUpdates;
+}
+
+/**
+ * Handle update profile form submission
+ * @param {Event} e - Form submit event
+ */
+async function handleUpdateProfileSubmit(e) {
     e.preventDefault();
     
-    const email = document.getElementById('update-email').value;
-    const currentPassword = document.getElementById('current-password').value;
-    const newPassword = document.getElementById('new-password').value;
-    const confirmNewPassword = document.getElementById('confirm-new-password').value;
+    // Get form data
+    const email = profileElements.updateEmail.value;
+    const currentPassword = profileElements.currentPassword.value;
+    const newPassword = profileElements.newPassword.value;
+    const confirmNewPassword = profileElements.confirmNewPassword.value;
     
-    // Validate form
-    if (newPassword && newPassword !== confirmNewPassword) {
-        showError('New passwords do not match');
-        return;
+    // Validate passwords if changing password
+    if (newPassword || confirmNewPassword) {
+        if (!currentPassword) {
+            alert('Please enter your current password');
+            return;
+        }
+        
+        if (newPassword !== confirmNewPassword) {
+            alert('New passwords do not match');
+            return;
+        }
     }
     
     try {
@@ -54,58 +145,58 @@ async function handleProfileUpdate(e) {
         await profileService.updateProfile(profileData);
         
         // Change password if provided
-        if (currentPassword && newPassword) {
+        if (newPassword) {
             await profileService.changePassword(currentPassword, newPassword);
         }
         
         // Clear password fields
-        document.getElementById('current-password').value = '';
-        document.getElementById('new-password').value = '';
-        document.getElementById('confirm-new-password').value = '';
+        profileElements.currentPassword.value = '';
+        profileElements.newPassword.value = '';
+        profileElements.confirmNewPassword.value = '';
+        
+        // Refresh profile
+        await refreshProfile();
         
         hideLoading();
-        showMessage('Profile updated successfully');
+        
+        alert('Profile updated successfully');
     } catch (error) {
+        console.error('Error updating profile:', error);
         hideLoading();
-        showError(error.message || 'Failed to update profile');
+        alert('Error updating profile: ' + (error.message || 'Please try again'));
     }
 }
 
-// Handle notification preferences form submission
-async function handleNotificationPreferencesUpdate(e) {
+/**
+ * Handle update notification preferences form submission
+ * @param {Event} e - Form submit event
+ */
+async function handleUpdatePreferencesSubmit(e) {
     e.preventDefault();
     
+    // Get form data
     const preferences = {
-        emailNotifications: document.getElementById('email-notifications').checked,
-        taskAssignments: document.getElementById('task-assignments').checked,
-        deadlineReminders: document.getElementById('deadline-reminders').checked,
-        statusUpdates: document.getElementById('status-updates').checked
+        emailNotifications: profileElements.emailNotifications.checked,
+        taskAssignments: profileElements.taskAssignments.checked,
+        deadlineReminders: profileElements.deadlineReminders.checked,
+        statusUpdates: profileElements.statusUpdates.checked
     };
     
     try {
         showLoading();
         
-        await profileService.updateNotificationPreferences(preferences);
+        // Update preferences
+        await notificationsService.updatePreferences(preferences);
         
         hideLoading();
-        showMessage('Notification preferences updated successfully');
+        
+        alert('Notification preferences updated successfully');
     } catch (error) {
+        console.error('Error updating notification preferences:', error);
         hideLoading();
-        showError(error.message || 'Failed to update notification preferences');
+        alert('Error updating notification preferences: ' + (error.message || 'Please try again'));
     }
 }
 
-// Initialize profile-related event listeners
-function initProfileEvents() {
-    // Profile update form
-    const updateProfileForm = document.getElementById('update-profile-form');
-    if (updateProfileForm) {
-        updateProfileForm.addEventListener('submit', handleProfileUpdate);
-    }
-    
-    // Notification preferences form
-    const notificationPreferencesForm = document.getElementById('notification-preferences-form');
-    if (notificationPreferencesForm) {
-        notificationPreferencesForm.addEventListener('submit', handleNotificationPreferencesUpdate);
-    }
-}
+// Initialize profile when app is ready
+document.addEventListener('app-ready', initProfile);

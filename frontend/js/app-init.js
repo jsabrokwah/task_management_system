@@ -1,25 +1,32 @@
 /**
  * Application Initialization
- * Connects all the separate modules and initializes the application
+ * Handles application startup and global utilities
  */
 
-// Initialize all event listeners
-function initAllEvents() {
-    // Initialize task events
-    initTaskEvents();
-    
-    // Initialize notification events
-    initNotificationEvents();
-    
-    // Initialize profile events
-    initProfileEvents();
+// Global loading spinner functions
+function showLoading() {
+    document.getElementById('loading-spinner').classList.remove('hidden');
 }
 
-// Document ready function
+function hideLoading() {
+    document.getElementById('loading-spinner').classList.add('hidden');
+}
+
+// Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize the application
     initApp();
     
-    // Initialize all event listeners
-    initAllEvents();
+    // Dispatch app-ready event for module initialization
+    document.dispatchEvent(new Event('app-ready'));
+    
+    // Update API URL from config
+    if (CONFIG.API_URL) {
+        console.log(`API URL: ${CONFIG.API_URL}`);
+    }
+    
+    // Check if mock API is enabled
+    if (typeof MOCK_API_ENABLED !== 'undefined' && MOCK_API_ENABLED) {
+        console.log('Mock API is enabled');
+    }
 });

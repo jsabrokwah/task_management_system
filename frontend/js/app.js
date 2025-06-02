@@ -1,35 +1,29 @@
 /**
- * Main Application Script
- * Handles UI interactions and application flow
+ * Main Application Logic
+ * Handles core application functionality and navigation
  */
+
+// Global variables
+let currentView = null;
+let refreshTimers = {};
 
 // DOM Elements
 const elements = {
+    // Navigation
+    dashboardLink: document.getElementById('dashboard-link'),
+    tasksLink: document.getElementById('tasks-link'),
+    notificationsLink: document.getElementById('notifications-link'),
+    profileLink: document.getElementById('profile-link'),
+    logoutBtn: document.getElementById('logout-btn'),
+    notificationBadge: document.getElementById('notification-badge'),
+    userName: document.getElementById('user-name'),
+    
     // Containers
     authContainer: document.getElementById('auth-container'),
     dashboardContainer: document.getElementById('dashboard-container'),
     tasksContainer: document.getElementById('tasks-container'),
     notificationsContainer: document.getElementById('notifications-container'),
     profileContainer: document.getElementById('profile-container'),
-    
-    // Navigation
-    navLinks: document.querySelectorAll('.nav-links a'),
-    dashboardLink: document.getElementById('dashboard-link'),
-    tasksLink: document.getElementById('tasks-link'),
-    notificationsLink: document.getElementById('notifications-link'),
-    profileLink: document.getElementById('profile-link'),
-    
-    // Auth forms
-    loginTab: document.getElementById('login-tab'),
-    registerTab: document.getElementById('register-tab'),
-    loginForm: document.getElementById('login-form'),
-    registerForm: document.getElementById('register-form'),
-    loginError: document.getElementById('login-error'),
-    registerError: document.getElementById('register-error'),
-    
-    // User info
-    userName: document.getElementById('user-name'),
-    logoutBtn: document.getElementById('logout-btn'),
     
     // Admin sections
     adminSections: document.querySelectorAll('.admin-section'),
@@ -38,12 +32,14 @@ const elements = {
     loadingSpinner: document.getElementById('loading-spinner')
 };
 
-// Initialize application
+/**
+ * Initialize the application
+ */
 function initApp() {
     // Set up event listeners
     setupEventListeners();
     
-    // Check if user is already logged in
+    // Check authentication
     if (authService.isAuthenticated()) {
         showApp();
     } else {
@@ -51,34 +47,66 @@ function initApp() {
     }
 }
 
-// Set up event listeners
+/**
+ * Set up event listeners
+ */
 function setupEventListeners() {
-    // Auth tabs
-    elements.loginTab.addEventListener('click', () => switchAuthTab('login'));
-    elements.registerTab.addEventListener('click', () => switchAuthTab('register'));
-    
-    // Auth forms
-    elements.loginForm.addEventListener('submit', handleLogin);
-    elements.registerForm.addEventListener('submit', handleRegister);
-    
-    // Navigation
-    elements.navLinks.forEach(link => {
-        link.addEventListener('click', handleNavigation);
-    });
-    
-    // Logout
+    // Navigation links
+    elements.dashboardLink.addEventListener('click', () => showView('dashboard'));
+    elements.tasksLink.addEventListener('click', () => showView('tasks'));
+    elements.notificationsLink.addEventListener('click', () => showView('notifications'));
+    elements.profileLink.addEventListener('click', () => showView('profile'));
     elements.logoutBtn.addEventListener('click', () => authService.logout());
 }
 
-// Handle navigation clicks
-function handleNavigation(e) {
-    e.preventDefault();
+/**
+ * Show the main application
+ */
+function showApp() {
+    // Hide auth forms
+    elements.authContainer.classList.add('hidden');
     
-    // Remove active class from all links
-    elements.navLinks.forEach(link => link.classList.remove('active'));
+    // Update user info
+    const user = authService.getUser();
+    elements.userName.textContent = user.name || user.username || user.email;
     
-    // Add active class to clicked link
-    e.target.classList.add('active');
+    // Show/hide admin sections
+    toggleAdminSections();
+    
+    // Show dashboard by default
+    showView('dashboard');
+    
+    // Start notification polling
+    startNotificationPolling();
+}
+
+/**
+ * Show authentication forms
+ */
+function showAuthForms() {
+    // Hide all app containers
+    elements.dashboardContainer.classList.add('hidden');
+    elements.tasksContainer.classList.add('hidden');
+    elements.notificationsContainer.classList.add('hidden');
+    elements.profileContainer.classList.add('hidden');
+    
+    // Show auth container
+    elements.authContainer.classList.remove('hidden');
+    
+    // Clear current view
+    currentView = null;
+    
+    // Stop all refresh timers
+    stopAllRefreshTimers();
+}
+
+/**
+ * Show a specific view
+ * @param {string} view - View name ('dashboard', 'tasks', 'notifications', 'profile')
+ */
+function showView(view) {
+    // Update current view
+    currentView = view;
     
     // Hide all containers
     elements.dashboardContainer.classList.add('hidden');
@@ -86,227 +114,306 @@ function handleNavigation(e) {
     elements.notificationsContainer.classList.add('hidden');
     elements.profileContainer.classList.add('hidden');
     
-    // Show selected container
-    const linkId = e.target.id;
+    // Remove active class from all links
+    elements.dashboardLink.classList.remove('active');
+    elements.tasksLink.classList.remove('active');
+    elements.notificationsLink.classList.remove('active');
+    elements.profileLink.classList.remove('active');
     
-    if (linkId === 'dashboard-link') {
-        elements.dashboardContainer.classList.remove('hidden');
-        loadDashboard();
-    } else if (linkId === 'tasks-link') {
-        elements.tasksContainer.classList.remove('hidden');
-        loadTasks();
-    } else if (linkId === 'notifications-link') {
-        elements.notificationsContainer.classList.remove('hidden');
-        loadNotifications();
-    } else if (linkId === 'profile-link') {
-        elements.profileContainer.classList.remove('hidden');
-        loadProfile();
+    // Show selected container and activate link
+    switch (view) {
+        case 'dashboard':
+            elements.dashboardContainer.classList.remove('hidden');
+            elements.dashboardLink.classList.add('active');
+            loadDashboard();
+            break;
+        case 'tasks':
+            elements.tasksContainer.classList.remove('hidden');
+            elements.tasksLink.classList.add('active');
+            loadTasks();
+            break;
+        case 'notifications':
+            elements.notificationsContainer.classList.remove('hidden');
+            elements.notificationsLink.classList.add('active');
+            loadNotifications();
+            break;
+        case 'profile':
+            elements.profileContainer.classList.remove('hidden');
+            elements.profileLink.classList.add('active');
+            loadProfile();
+            break;
     }
 }
 
-// Switch between login and register tabs
-function switchAuthTab(tab) {
-    if (tab === 'login') {
-        elements.loginTab.classList.add('active');
-        elements.registerTab.classList.remove('active');
-        elements.loginForm.classList.remove('hidden');
-        elements.registerForm.classList.add('hidden');
-    } else {
-        elements.loginTab.classList.remove('active');
-        elements.registerTab.classList.add('active');
-        elements.loginForm.classList.add('hidden');
-        elements.registerForm.classList.remove('hidden');
-    }
-}
-
-// Handle login form submission
-async function handleLogin(e) {
-    e.preventDefault();
-    
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
-    
-    try {
-        showLoading();
-        await authService.login(username, password);
-        hideLoading();
-        showApp();
-    } catch (error) {
-        hideLoading();
-        elements.loginError.textContent = error.message || 'Login failed. Please try again.';
-        elements.loginError.classList.remove('hidden');
-    }
-}
-
-// Handle register form submission
-async function handleRegister(e) {
-    e.preventDefault();
-    
-    const username = document.getElementById('register-username').value;
-    const email = document.getElementById('register-email').value;
-    const password = document.getElementById('register-password').value;
-    const confirmPassword = document.getElementById('register-confirm-password').value;
-    
-    // Validate passwords match
-    if (password !== confirmPassword) {
-        elements.registerError.textContent = 'Passwords do not match';
-        elements.registerError.classList.remove('hidden');
-        return;
-    }
-    
-    try {
-        showLoading();
-        await authService.register({ username, email, password });
-        hideLoading();
-        
-        // Switch to login tab and show success message
-        switchAuthTab('login');
-        showMessage('Registration successful! Please log in.');
-    } catch (error) {
-        hideLoading();
-        elements.registerError.textContent = error.message || 'Registration failed. Please try again.';
-        elements.registerError.classList.remove('hidden');
-    }
-}
-
-// Show the main application after login
-function showApp() {
-    // Hide auth container
-    elements.authContainer.classList.add('hidden');
-    
-    // Update user info
-    const user = authService.getUser();
-    elements.userName.textContent = user.Username || user.username || 'User';
-    
-    // Show/hide admin sections based on user role
+/**
+ * Toggle admin sections based on user role
+ */
+function toggleAdminSections() {
     const isAdmin = authService.isAdmin();
+    
     elements.adminSections.forEach(section => {
-        section.classList.toggle('hidden', !isAdmin);
+        if (isAdmin) {
+            section.classList.remove('hidden');
+        } else {
+            section.classList.add('hidden');
+        }
     });
-    
-    // Show dashboard by default
-    elements.dashboardContainer.classList.remove('hidden');
-    loadDashboard();
-    
-    // Start notification polling
-    notificationService.startPolling();
 }
 
-// Show authentication forms
-function showAuthForms() {
-    // Show auth container
-    elements.authContainer.classList.remove('hidden');
+/**
+ * Start notification polling
+ */
+function startNotificationPolling() {
+    // Check for unread notifications immediately
+    updateNotificationBadge();
     
-    // Hide all app containers
-    elements.dashboardContainer.classList.add('hidden');
-    elements.tasksContainer.classList.add('hidden');
-    elements.notificationsContainer.classList.add('hidden');
-    elements.profileContainer.classList.add('hidden');
-    
-    // Stop notification polling
-    notificationService.stopPolling();
+    // Set up polling interval
+    refreshTimers.notifications = setInterval(() => {
+        updateNotificationBadge();
+    }, CONFIG.REFRESH.NOTIFICATIONS);
 }
 
-// Load dashboard data
-async function loadDashboard() {
+/**
+ * Update notification badge with unread count
+ */
+async function updateNotificationBadge() {
+    try {
+        const count = await notificationsService.getUnreadCount();
+        
+        if (count > 0) {
+            elements.notificationBadge.textContent = count;
+            elements.notificationBadge.classList.remove('hidden');
+        } else {
+            elements.notificationBadge.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error updating notification badge:', error);
+    }
+}
+
+/**
+ * Load dashboard data
+ */
+function loadDashboard() {
+    // Stop existing refresh timer
+    if (refreshTimers.dashboard) {
+        clearInterval(refreshTimers.dashboard);
+    }
+    
+    // Load dashboard data
+    refreshDashboard();
+    
+    // Set up refresh timer
+    refreshTimers.dashboard = setInterval(() => {
+        if (currentView === 'dashboard') {
+            refreshDashboard();
+        }
+    }, CONFIG.REFRESH.DASHBOARD);
+}
+
+/**
+ * Refresh dashboard data
+ */
+async function refreshDashboard() {
     try {
         showLoading();
         
-        // Get task statistics
-        const tasks = await taskService.getTasks();
+        // Get tasks for statistics
+        const tasks = await tasksService.getTasks();
         
-        // Count tasks by status
-        const totalTasks = tasks.length;
-        const inProgressTasks = tasks.filter(task => task.Status === CONFIG.TASK_STATUS.IN_PROGRESS).length;
-        const completedTasks = tasks.filter(task => task.Status === CONFIG.TASK_STATUS.COMPLETED).length;
-        const overdueTasks = tasks.filter(task => taskService.isOverdue(task)).length;
+        // Calculate statistics
+        const stats = {
+            total: tasks.length,
+            new: tasks.filter(task => task.Status === 'New').length,
+            inProgress: tasks.filter(task => task.Status === 'In Progress').length,
+            completed: tasks.filter(task => task.Status === 'Completed').length,
+            overdue: tasks.filter(task => task.Status === 'Overdue').length
+        };
         
         // Update statistics display
-        document.getElementById('total-tasks').textContent = totalTasks;
-        document.getElementById('in-progress-tasks').textContent = inProgressTasks;
-        document.getElementById('completed-tasks').textContent = completedTasks;
-        document.getElementById('overdue-tasks').textContent = overdueTasks;
+        document.getElementById('total-tasks').textContent = stats.total;
+        document.getElementById('in-progress-tasks').textContent = stats.inProgress;
+        document.getElementById('completed-tasks').textContent = stats.completed;
+        document.getElementById('overdue-tasks').textContent = stats.overdue;
         
-        // Load team member tasks
-        if (!authService.isAdmin()) {
-            loadMyTasks(tasks);
-        } else {
-            // Load admin dashboard
-            await adminService.updateDashboard();
+        // If user is admin, load admin dashboard data
+        if (authService.isAdmin()) {
+            await loadAdminDashboard();
         }
+        
+        // Load team member dashboard data
+        await loadTeamDashboard(tasks);
         
         hideLoading();
     } catch (error) {
-        console.error('Error loading dashboard:', error);
+        console.error('Error refreshing dashboard:', error);
         hideLoading();
-        showError('Failed to load dashboard data');
     }
 }
 
-// Load tasks for team member dashboard
-function loadMyTasks(tasks) {
+/**
+ * Load admin dashboard data
+ */
+async function loadAdminDashboard() {
+    try {
+        // Get upcoming deadlines
+        const deadlinesData = await adminService.getUpcomingDeadlines();
+        const deadlines = deadlinesData.tasks;
+        
+        // Get team performance
+        const performance = await adminService.getTeamPerformance();
+        
+        // Update deadlines table
+        const deadlinesBody = document.getElementById('deadlines-body');
+        deadlinesBody.innerHTML = '';
+        
+        deadlines.forEach(task => {
+            const row = document.createElement('tr');
+            
+            const deadline = new Date(task.Deadline);
+            const formattedDeadline = deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY);
+            
+            row.innerHTML = `
+                <td>${task.Title}</td>
+                <td>${task.AssignedToName || 'Unassigned'}</td>
+                <td>${formattedDeadline}</td>
+                <td><span class="task-status status-${task.Status.toLowerCase().replace(' ', '-')}">${task.Status}</span></td>
+            `;
+            
+            deadlinesBody.appendChild(row);
+        });
+        
+        // Update team performance chart
+        updateTeamPerformanceChart(performance);
+    } catch (error) {
+        console.error('Error loading admin dashboard:', error);
+    }
+}
+
+/**
+ * Update team performance chart
+ * @param {Object} performance - Team performance data
+ */
+function updateTeamPerformanceChart(performance) {
+    const ctx = document.getElementById('team-performance-chart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (window.teamChart) {
+        window.teamChart.destroy();
+    }
+    
+    // Create new chart
+    window.teamChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: performance.team_metrics.map(member => member.name),
+            datasets: [
+                {
+                    label: 'Completed Tasks',
+                    data: performance.team_metrics.map(member => member.completed_tasks),
+                    backgroundColor: '#2ecc71'
+                },
+                {
+                    label: 'In Progress Tasks',
+                    data: performance.team_metrics.map(member => member.total_tasks - member.completed_tasks - member.overdue_tasks),
+                    backgroundColor: '#3498db'
+                },
+                {
+                    label: 'Overdue Tasks',
+                    data: performance.team_metrics.map(member => member.overdue_tasks),
+                    backgroundColor: '#e74c3c'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    stacked: true
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Load team member dashboard data
+ * @param {Array} tasks - Tasks data
+ */
+function loadTeamDashboard(tasks) {
+    // Filter tasks assigned to current user
+    const user = authService.getUser();
+    const myTasks = tasks.filter(task => task.AssignedTo === user.user_id);
+    
+    // Update my tasks list
     const myTasksList = document.getElementById('my-tasks-list');
     myTasksList.innerHTML = '';
     
-    if (tasks.length === 0) {
-        myTasksList.innerHTML = '<p>No tasks assigned to you</p>';
+    if (myTasks.length === 0) {
+        myTasksList.innerHTML = '<p>No tasks assigned to you.</p>';
         return;
     }
     
     // Sort tasks by deadline (closest first)
-    tasks.sort((a, b) => new Date(a.Deadline) - new Date(b.Deadline));
+    myTasks.sort((a, b) => new Date(a.Deadline) - new Date(b.Deadline));
     
-    tasks.forEach(task => {
-        const isOverdue = taskService.isOverdue(task);
-        const status = isOverdue ? CONFIG.TASK_STATUS.OVERDUE : task.Status;
-        
+    // Display tasks
+    myTasks.forEach(task => {
         const taskCard = document.createElement('div');
-        taskCard.className = `task-card ${task.Status.toLowerCase().replace(' ', '-')}`;
-        taskCard.setAttribute('data-status', status);
-        taskCard.setAttribute('data-task-id', task.TaskID);
+        taskCard.className = 'task-card';
+        taskCard.dataset.taskId = task.TaskID;
+        taskCard.dataset.status = task.Status;
+        
+        const deadline = new Date(task.Deadline);
+        const formattedDeadline = deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY);
         
         taskCard.innerHTML = `
             <div class="task-card-header">
                 <h3 class="task-card-title">${task.Title}</h3>
-                <span class="task-card-priority ${taskService.getPriorityClass(task.Priority)}">${task.Priority}</span>
+                <span class="task-card-priority priority-${task.Priority.toLowerCase()}">${task.Priority}</span>
             </div>
             <div class="task-card-body">
                 <p class="task-card-description">${task.Description}</p>
                 <div class="task-card-meta">
-                    <span>Deadline: ${taskService.formatDate(task.Deadline)}</span>
+                    <span>Deadline: ${formattedDeadline}</span>
                 </div>
             </div>
             <div class="task-card-footer">
-                <span class="task-status ${taskService.getStatusClass(status)}">${status}</span>
+                <span class="task-status status-${task.Status.toLowerCase().replace(' ', '-')}">${task.Status}</span>
                 <button class="btn btn-outline view-task-btn">View Details</button>
             </div>
         `;
         
-        myTasksList.appendChild(taskCard);
-        
         // Add event listener to view task button
         taskCard.querySelector('.view-task-btn').addEventListener('click', () => {
-            showTaskDetails(task.TaskID);
+            viewTask(task.TaskID);
         });
+        
+        myTasksList.appendChild(taskCard);
     });
     
     // Add event listeners to filter buttons
-    document.querySelectorAll('.btn-filter').forEach(button => {
+    document.querySelectorAll('.task-filters .btn-filter').forEach(button => {
         button.addEventListener('click', (e) => {
-            // Remove active class from all filter buttons
-            document.querySelectorAll('.btn-filter').forEach(btn => {
+            // Update active button
+            document.querySelectorAll('.task-filters .btn-filter').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
-            // Add active class to clicked button
             e.target.classList.add('active');
             
             // Get filter value
-            const filter = e.target.getAttribute('data-filter');
+            const filter = e.target.dataset.filter;
             
             // Filter tasks
             document.querySelectorAll('.task-card').forEach(card => {
-                if (filter === 'all' || card.getAttribute('data-status') === filter) {
+                if (filter === 'all' || card.dataset.status === filter) {
                     card.style.display = 'block';
                 } else {
                     card.style.display = 'none';
@@ -316,45 +423,71 @@ function loadMyTasks(tasks) {
     });
 }
 
-// Load tasks data
-async function loadTasks() {
-    // Implementation will be added in the next step
+/**
+ * Load tasks data
+ */
+function loadTasks() {
+    // Stop existing refresh timer
+    if (refreshTimers.tasks) {
+        clearInterval(refreshTimers.tasks);
+    }
+    
+    // Load tasks data
+    refreshTasks();
+    
+    // Set up refresh timer
+    refreshTimers.tasks = setInterval(() => {
+        if (currentView === 'tasks') {
+            refreshTasks();
+        }
+    }, CONFIG.REFRESH.TASKS);
 }
 
-// Load notifications data
-async function loadNotifications() {
-    // Implementation will be added in the next step
+/**
+ * Load notifications data
+ */
+function loadNotifications() {
+    refreshNotifications();
 }
 
-// Load profile data
-async function loadProfile() {
-    // Implementation will be added in the next step
+/**
+ * Load profile data
+ */
+function loadProfile() {
+    refreshProfile();
 }
 
-// Show task details
-function showTaskDetails(taskId) {
-    // Implementation will be added in the next step
+/**
+ * Stop all refresh timers
+ */
+function stopAllRefreshTimers() {
+    Object.keys(refreshTimers).forEach(key => {
+        clearInterval(refreshTimers[key]);
+    });
+    refreshTimers = {};
 }
 
-// Show loading spinner
+/**
+ * Format date for display
+ * @param {string} dateString - ISO date string
+ * @param {Object} options - Date format options
+ * @returns {string} - Formatted date string
+ */
+function formatDate(dateString, options = CONFIG.DATE_FORMAT.DISPLAY) {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+/**
+ * Show loading spinner
+ */
 function showLoading() {
     elements.loadingSpinner.classList.remove('hidden');
 }
 
-// Hide loading spinner
+/**
+ * Hide loading spinner
+ */
 function hideLoading() {
     elements.loadingSpinner.classList.add('hidden');
 }
-
-// Show error message
-function showError(message) {
-    alert(message); // Simple implementation for now
-}
-
-// Show success message
-function showMessage(message) {
-    alert(message); // Simple implementation for now
-}
-
-// Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', initApp);

@@ -1,43 +1,35 @@
 /**
- * Task Service
- * Handles task-related operations like fetching, creating, updating tasks
+ * Tasks Service
+ * Handles task management operations
  */
-class TaskService {
+class TasksService {
     /**
-     * Get all tasks with optional filtering
-     * @param {string} status - Filter tasks by status
-     * @param {string} priority - Filter tasks by priority
+     * Get all tasks
+     * @param {Object} filters - Optional filters for tasks
      * @returns {Promise} - Promise resolving to array of tasks
      */
-    async getTasks(status = null, priority = null) {
+    async getTasks(filters = {}) {
         try {
-            let url = `${CONFIG.API_URL}/api/tasks`;
-            const queryParams = [];
+            // Build query string from filters
+            const queryParams = new URLSearchParams();
+            if (filters.status) queryParams.append('status', filters.status);
+            if (filters.priority) queryParams.append('priority', filters.priority);
             
-            if (status && status !== 'all') {
-                queryParams.push(`status=${status}`);
-            }
+            const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
             
-            if (priority && priority !== 'all') {
-                queryParams.push(`priority=${priority}`);
-            }
-            
-            if (queryParams.length > 0) {
-                url += `?${queryParams.join('&')}`;
-            }
-            
-            const response = await fetch(url, {
+            const response = await fetch(`${CONFIG.API_URL}/tasks${queryString}`, {
                 headers: {
                     'Authorization': `Bearer ${authService.getToken()}`
                 }
             });
             
             if (!response.ok) {
-                throw new Error('Failed to fetch tasks');
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to fetch tasks');
             }
             
             const data = await response.json();
-            return data.tasks;
+            return data.data.tasks;
         } catch (error) {
             console.error('Error fetching tasks:', error);
             throw error;
@@ -51,18 +43,19 @@ class TaskService {
      */
     async getTask(taskId) {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/api/tasks/${taskId}`, {
+            const response = await fetch(`${CONFIG.API_URL}/tasks/${taskId}`, {
                 headers: {
                     'Authorization': `Bearer ${authService.getToken()}`
                 }
             });
             
             if (!response.ok) {
-                throw new Error('Failed to fetch task');
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to fetch task');
             }
             
             const data = await response.json();
-            return data;
+            return data.data;
         } catch (error) {
             console.error(`Error fetching task ${taskId}:`, error);
             throw error;
@@ -76,7 +69,7 @@ class TaskService {
      */
     async createTask(taskData) {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/api/tasks`, {
+            const response = await fetch(`${CONFIG.API_URL}/tasks`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -90,7 +83,8 @@ class TaskService {
                 throw new Error(error.message || 'Failed to create task');
             }
             
-            return await response.json();
+            const data = await response.json();
+            return data.data;
         } catch (error) {
             console.error('Error creating task:', error);
             throw error;
@@ -105,7 +99,7 @@ class TaskService {
      */
     async updateTask(taskId, taskData) {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/api/tasks/${taskId}`, {
+            const response = await fetch(`${CONFIG.API_URL}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -119,9 +113,37 @@ class TaskService {
                 throw new Error(error.message || 'Failed to update task');
             }
             
-            return await response.json();
+            const data = await response.json();
+            return data.data;
         } catch (error) {
             console.error(`Error updating task ${taskId}:`, error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Delete a task
+     * @param {string} taskId - Task ID
+     * @returns {Promise} - Promise resolving to success message
+     */
+    async deleteTask(taskId) {
+        try {
+            const response = await fetch(`${CONFIG.API_URL}/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authService.getToken()}`
+                }
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to delete task');
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(`Error deleting task ${taskId}:`, error);
             throw error;
         }
     }
@@ -135,7 +157,7 @@ class TaskService {
      */
     async updateTaskStatus(taskId, status, notes = '') {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/api/tasks/${taskId}/status`, {
+            const response = await fetch(`${CONFIG.API_URL}/tasks/${taskId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -149,9 +171,10 @@ class TaskService {
                 throw new Error(error.message || 'Failed to update task status');
             }
             
-            return await response.json();
+            const data = await response.json();
+            return data.data;
         } catch (error) {
-            console.error(`Error updating task ${taskId} status:`, error);
+            console.error(`Error updating status for task ${taskId}:`, error);
             throw error;
         }
     }
@@ -164,7 +187,7 @@ class TaskService {
      */
     async assignTask(taskId, userId) {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/api/tasks/${taskId}/assign`, {
+            const response = await fetch(`${CONFIG.API_URL}/tasks/${taskId}/assign`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -178,106 +201,14 @@ class TaskService {
                 throw new Error(error.message || 'Failed to assign task');
             }
             
-            return await response.json();
+            const data = await response.json();
+            return data.data;
         } catch (error) {
             console.error(`Error assigning task ${taskId}:`, error);
             throw error;
         }
     }
-    
-    /**
-     * Delete a task
-     * @param {string} taskId - Task ID
-     * @returns {Promise} - Promise resolving when task is deleted
-     */
-    async deleteTask(taskId) {
-        try {
-            const response = await fetch(`${CONFIG.API_URL}/api/tasks/${taskId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${authService.getToken()}`
-                }
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to delete task');
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error(`Error deleting task ${taskId}:`, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * Format date for display
-     * @param {string} dateString - ISO date string
-     * @param {boolean} includeTime - Whether to include time in the formatted date
-     * @returns {string} - Formatted date string
-     */
-    formatDate(dateString, includeTime = true) {
-        if (!dateString) return 'N/A';
-        
-        const date = new Date(dateString);
-        const options = includeTime ? CONFIG.DATE_FORMAT.DISPLAY : CONFIG.DATE_FORMAT.SHORT;
-        
-        return date.toLocaleDateString('en-US', options);
-    }
-    
-    /**
-     * Check if a task is overdue
-     * @param {Object} task - Task object
-     * @returns {boolean} - True if task is overdue
-     */
-    isOverdue(task) {
-        if (task.Status === CONFIG.TASK_STATUS.COMPLETED) return false;
-        
-        const deadline = new Date(task.Deadline);
-        const now = new Date();
-        
-        return deadline < now;
-    }
-    
-    /**
-     * Get CSS class for task status
-     * @param {string} status - Task status
-     * @returns {string} - CSS class name
-     */
-    getStatusClass(status) {
-        switch (status) {
-            case CONFIG.TASK_STATUS.NEW:
-                return 'status-new';
-            case CONFIG.TASK_STATUS.IN_PROGRESS:
-                return 'status-in-progress';
-            case CONFIG.TASK_STATUS.COMPLETED:
-                return 'status-completed';
-            case CONFIG.TASK_STATUS.OVERDUE:
-                return 'status-overdue';
-            default:
-                return '';
-        }
-    }
-    
-    /**
-     * Get CSS class for task priority
-     * @param {string} priority - Task priority
-     * @returns {string} - CSS class name
-     */
-    getPriorityClass(priority) {
-        switch (priority) {
-            case CONFIG.TASK_PRIORITY.HIGH:
-                return 'priority-high';
-            case CONFIG.TASK_PRIORITY.MEDIUM:
-                return 'priority-medium';
-            case CONFIG.TASK_PRIORITY.LOW:
-                return 'priority-low';
-            default:
-                return '';
-        }
-    }
 }
 
-// Create and export task service instance
-const taskService = new TaskService();
+// Create and export tasks service instance
+const tasksService = new TasksService();

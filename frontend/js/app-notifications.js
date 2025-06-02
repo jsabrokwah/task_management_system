@@ -1,37 +1,70 @@
 /**
- * Notifications UI Functions
- * Extension of app.js for notification-related UI functionality
+ * Notifications UI
+ * Handles notification-specific UI functionality
  */
 
-// Load notifications data
-async function loadNotifications() {
+// DOM Elements
+const notificationElements = {
+    notificationsList: document.getElementById('notifications-list'),
+    notificationFilter: document.getElementById('notification-filter'),
+    markAllReadBtn: document.getElementById('mark-all-read')
+};
+
+// Current notifications data
+let notificationsData = [];
+
+/**
+ * Initialize notifications
+ */
+function initNotifications() {
+    // Set up event listeners
+    setupNotificationEventListeners();
+}
+
+/**
+ * Set up notification-related event listeners
+ */
+function setupNotificationEventListeners() {
+    // Notification filter
+    notificationElements.notificationFilter.addEventListener('change', filterNotifications);
+    
+    // Mark all as read button
+    notificationElements.markAllReadBtn.addEventListener('click', markAllNotificationsAsRead);
+}
+
+/**
+ * Refresh notifications data and display
+ */
+async function refreshNotifications() {
     try {
         showLoading();
         
-        // Get filter value
-        const filter = document.getElementById('notification-filter').value;
-        
-        // Get notifications
-        const notifications = await notificationService.getNotifications(filter);
+        // Get all notifications
+        notificationsData = await notificationsService.getNotifications();
         
         // Display notifications
-        displayNotifications(notifications);
+        displayNotifications(notificationsData);
+        
+        // Update notification badge
+        updateNotificationBadge();
         
         hideLoading();
     } catch (error) {
-        console.error('Error loading notifications:', error);
+        console.error('Error refreshing notifications:', error);
         hideLoading();
-        showError('Failed to load notifications');
     }
 }
 
-// Display notifications in the UI
+/**
+ * Display notifications in the list
+ * @param {Array} notifications - Notifications to display
+ */
 function displayNotifications(notifications) {
-    const notificationsList = document.getElementById('notifications-list');
-    notificationsList.innerHTML = '';
+    const list = notificationElements.notificationsList;
+    list.innerHTML = '';
     
     if (notifications.length === 0) {
-        notificationsList.innerHTML = '<p class="text-center">No notifications</p>';
+        list.innerHTML = '<p>No notifications found.</p>';
         return;
     }
     
@@ -39,108 +72,168 @@ function displayNotifications(notifications) {
     notifications.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
     
     notifications.forEach(notification => {
-        const notificationItem = document.createElement('div');
-        notificationItem.className = `notification-item ${notification.ReadStatus ? '' : 'unread'}`;
-        notificationItem.setAttribute('data-notification-id', notification.NotificationID);
+        const item = document.createElement('div');
+        item.className = `notification-item ${notification.ReadStatus ? '' : 'unread'}`;
+        item.dataset.id = notification.NotificationID;
         
-        notificationItem.innerHTML = `
+        const createdAt = new Date(notification.CreatedAt);
+        const formattedDate = formatDate(notification.CreatedAt);
+        
+        // Determine notification type icon
+        let typeIcon = '';
+        switch (notification.Type) {
+            case 'task_assigned':
+                typeIcon = '<i class="fas fa-tasks"></i>';
+                break;
+            case 'deadline_reminder':
+                typeIcon = '<i class="fas fa-clock"></i>';
+                break;
+            case 'status_update':
+                typeIcon = '<i class="fas fa-sync-alt"></i>';
+                break;
+            default:
+                typeIcon = '<i class="fas fa-bell"></i>';
+        }
+        
+        item.innerHTML = `
             <div class="notification-header">
-                <span class="notification-type">${notificationService.getNotificationTypeText(notification.Type)}</span>
-                <span class="notification-time">${notificationService.formatNotificationTime(notification.CreatedAt)}</span>
+                <span class="notification-type">${typeIcon} ${formatNotificationType(notification.Type)}</span>
+                <span class="notification-time">${formattedDate}</span>
             </div>
             <div class="notification-message">${notification.Message}</div>
             <div class="notification-actions">
                 ${notification.ReadStatus ? '' : '<button class="btn btn-outline mark-read-btn">Mark as Read</button>'}
-                ${notification.TaskID ? `<button class="btn btn-outline view-task-btn" data-task-id="${notification.TaskID}">View Task</button>` : ''}
+                ${notification.TaskID ? '<button class="btn btn-outline view-task-btn">View Task</button>' : ''}
             </div>
         `;
         
-        notificationsList.appendChild(notificationItem);
-    });
-    
-    // Add event listeners to notification action buttons
-    document.querySelectorAll('.mark-read-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const notificationId = e.target.closest('.notification-item').getAttribute('data-notification-id');
-            markNotificationAsRead(notificationId);
-        });
-    });
-    
-    document.querySelectorAll('.view-task-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const taskId = e.target.getAttribute('data-task-id');
-            
-            // Hide notifications container
-            elements.notificationsContainer.classList.add('hidden');
-            
-            // Show tasks container
-            elements.tasksContainer.classList.remove('hidden');
-            
-            // Update active nav link
-            elements.navLinks.forEach(link => link.classList.remove('active'));
-            elements.tasksLink.classList.add('active');
-            
-            // Show task details
-            showTaskDetails(taskId);
-        });
+        // Add event listeners to buttons
+        const markReadBtn = item.querySelector('.mark-read-btn');
+        if (markReadBtn) {
+            markReadBtn.addEventListener('click', () => {
+                markNotificationAsRead(notification.NotificationID);
+            });
+        }
+        
+        const viewTaskBtn = item.querySelector('.view-task-btn');
+        if (viewTaskBtn) {
+            viewTaskBtn.addEventListener('click', () => {
+                viewNotificationTask(notification.TaskID);
+            });
+        }
+        
+        list.appendChild(item);
     });
 }
 
-// Mark notification as read
+/**
+ * Format notification type for display
+ * @param {string} type - Notification type
+ * @returns {string} - Formatted notification type
+ */
+function formatNotificationType(type) {
+    switch (type) {
+        case 'task_assigned':
+            return 'Task Assigned';
+        case 'deadline_reminder':
+            return 'Deadline Reminder';
+        case 'status_update':
+            return 'Status Update';
+        default:
+            return 'Notification';
+    }
+}
+
+/**
+ * Filter notifications based on selected filter
+ */
+function filterNotifications() {
+    const filterValue = notificationElements.notificationFilter.value;
+    
+    // Apply filter
+    let filteredNotifications = notificationsData;
+    
+    if (filterValue === 'unread') {
+        filteredNotifications = notificationsData.filter(notification => !notification.ReadStatus);
+    } else if (filterValue === 'read') {
+        filteredNotifications = notificationsData.filter(notification => notification.ReadStatus);
+    }
+    
+    // Display filtered notifications
+    displayNotifications(filteredNotifications);
+}
+
+/**
+ * Mark notification as read
+ * @param {string} notificationId - Notification ID
+ */
 async function markNotificationAsRead(notificationId) {
     try {
         showLoading();
         
-        await notificationService.markAsRead(notificationId);
+        // Mark notification as read
+        await notificationsService.markAsRead(notificationId);
         
-        // Update UI
-        const notificationItem = document.querySelector(`.notification-item[data-notification-id="${notificationId}"]`);
-        if (notificationItem) {
-            notificationItem.classList.remove('unread');
-            const markReadBtn = notificationItem.querySelector('.mark-read-btn');
-            if (markReadBtn) {
-                markReadBtn.remove();
-            }
+        // Update notification in data
+        const notification = notificationsData.find(n => n.NotificationID === notificationId);
+        if (notification) {
+            notification.ReadStatus = true;
         }
+        
+        // Refresh display
+        displayNotifications(notificationsData);
+        
+        // Update notification badge
+        updateNotificationBadge();
         
         hideLoading();
     } catch (error) {
         console.error(`Error marking notification ${notificationId} as read:`, error);
         hideLoading();
-        showError('Failed to mark notification as read');
     }
 }
 
-// Mark all notifications as read
+/**
+ * Mark all notifications as read
+ */
 async function markAllNotificationsAsRead() {
     try {
         showLoading();
         
-        await notificationService.markAllAsRead();
+        // Mark all notifications as read
+        await notificationsService.markAllAsRead();
         
-        // Reload notifications
-        await loadNotifications();
+        // Update all notifications in data
+        notificationsData.forEach(notification => {
+            notification.ReadStatus = true;
+        });
+        
+        // Refresh display
+        displayNotifications(notificationsData);
+        
+        // Update notification badge
+        updateNotificationBadge();
         
         hideLoading();
-        showMessage('All notifications marked as read');
     } catch (error) {
         console.error('Error marking all notifications as read:', error);
         hideLoading();
-        showError('Failed to mark all notifications as read');
     }
 }
 
-// Initialize notification-related event listeners
-function initNotificationEvents() {
-    // Mark all as read button
-    const markAllReadBtn = document.getElementById('mark-all-read');
-    if (markAllReadBtn) {
-        markAllReadBtn.addEventListener('click', markAllNotificationsAsRead);
-    }
+/**
+ * View task associated with notification
+ * @param {string} taskId - Task ID
+ */
+function viewNotificationTask(taskId) {
+    // Switch to tasks view
+    showView('tasks');
     
-    // Notification filter
-    const notificationFilter = document.getElementById('notification-filter');
-    if (notificationFilter) {
-        notificationFilter.addEventListener('change', loadNotifications);
-    }
+    // View task details
+    setTimeout(() => {
+        viewTask(taskId);
+    }, 500);
 }
+
+// Initialize notifications when app is ready
+document.addEventListener('app-ready', initNotifications);
