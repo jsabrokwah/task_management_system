@@ -61,6 +61,7 @@ task-management-system/
 │   ├── admin/                 # Admin dashboard functions
 │   └── common/                # Shared utilities
 ├── tests/                     # Test files
+├── instructions.md            # Project Instruction
 ├── template.yaml              # SAM template
 ├── samconfig.toml             # SAM configuration
 └── README.md                  # Project README

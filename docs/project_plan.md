@@ -32,7 +32,7 @@ The Task Management System is a serverless application designed for field teams,
 ### 2. Task Management
 - Task creation with details (title, description, priority, deadline)
 - Task assignment to team members
-- Task status updates (New, In Progress, Completed, Delayed)
+- Task status updates (New, In Progress, Completed, Overdue)
 - Task filtering and sorting capabilities
 
 ### 3. Notification System
@@ -69,7 +69,7 @@ The Task Management System is a serverless application designed for field teams,
 - Title
 - Description
 - Priority (Low, Medium, High)
-- Status (New, In Progress, Completed, Delayed)
+- Status (New, In Progress, Completed, Overdue)
 - CreatedBy (UserID)
 - AssignedTo (UserID)
 - CreatedAt
@@ -88,7 +88,7 @@ The Task Management System is a serverless application designed for field teams,
 
 ## Implementation Plan
 
-### Phase 1: Setup and Infrastructure (Week 1)
+### Phase 1: Setup and Infrastructure
 - Set up AWS SAM development environment
 - Create initial SAM template for core services
 - Configure DynamoDB tables
@@ -96,7 +96,7 @@ The Task Management System is a serverless application designed for field teams,
 - Configure S3 bucket for frontend hosting
 - Set up CI/CD pipeline for deployment
 
-### Phase 2: Backend Development (Weeks 2-3)
+### Phase 2: Backend Development
 - Develop Flask API structure
 - Implement user authentication endpoints
 - Create task management endpoints (CRUD operations)
@@ -104,7 +104,7 @@ The Task Management System is a serverless application designed for field teams,
 - Implement admin-specific endpoints
 - Write unit tests for API endpoints
 
-### Phase 3: Frontend Development (Weeks 4-5)
+### Phase 3: Frontend Development
 - Create responsive HTML/CSS layouts
 - Develop JavaScript for API interaction
 - Implement authentication UI
@@ -113,14 +113,14 @@ The Task Management System is a serverless application designed for field teams,
 - Develop team member interface
 - Implement notification display
 
-### Phase 4: Integration and Testing (Week 6)
+### Phase 4: Integration and Testing
 - Integrate frontend with backend APIs
 - Perform end-to-end testing
 - Conduct security testing
 - Optimize performance
 - Fix bugs and issues
 
-### Phase 5: Documentation and Deployment (Week 7)
+### Phase 5: Documentation and Deployment
 - Complete user documentation
 - Finalize technical documentation
 - Prepare deployment scripts

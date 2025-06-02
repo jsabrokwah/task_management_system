@@ -51,7 +51,6 @@ The Task Management System is built using a serverless architecture on AWS, leve
   - Users Table
   - Tasks Table
   - Notifications Table
-- **S3 (Optional)**: For storing task attachments or larger files
 
 ### 4. Authentication Layer
 - **Cognito**: Manages user authentication, authorization, and user pools
