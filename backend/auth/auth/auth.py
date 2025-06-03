@@ -6,10 +6,8 @@ import json
 import boto3
 import uuid
 from datetime import datetime
-import sys
 
-# Add parent directory to path to import common modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Import from local common module
 from common import response, auth
 
 # Initialize AWS clients
@@ -55,6 +53,8 @@ def register(event):
         password = body['password']
         name = body['name']
         role = body.get('role', 'team_member')
+        if not role:
+            role = 'team_member'
         
         # Only allow 'admin' or 'team_member' roles
         if role not in ['admin', 'team_member']:

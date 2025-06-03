@@ -13,7 +13,7 @@ os.environ['NOTIFICATION_TOPIC'] = 'arn:aws:sns:us-east-1:123456789012:TestTopic
 
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from backend.tasks.tasks import lambda_handler
+from backend.tasks.tasks.tasks import lambda_handler
 
 class TestTaskEndpoints(unittest.TestCase):
     """Test cases for task management endpoints."""

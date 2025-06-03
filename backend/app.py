@@ -11,10 +11,10 @@ import boto3
 from werkzeug.exceptions import HTTPException
 
 # Import handlers
-from auth.auth import lambda_handler as auth_handler
-from tasks.tasks import lambda_handler as tasks_handler
-from notifications.notifications import lambda_handler as notifications_handler
-from admin.admin import lambda_handler as admin_handler
+from auth.auth.auth import lambda_handler as auth_handler
+from tasks.tasks.tasks import lambda_handler as tasks_handler
+from notifications.notifications.notifications import lambda_handler as notifications_handler
+from admin.admin.admin import lambda_handler as admin_handler
 
 app = Flask(__name__)
 

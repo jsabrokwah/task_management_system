@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Replace these variables with your actual values
-USER_POOL_ID="YOUR_USER_POOL_ID"  # e.g., eu-west-1_abcdefghi
-USERNAME="admin@example.com"
-EMAIL="admin@example.com"
+USER_POOL_ID="eu-west-1_hEehaZNDL"  # e.g., eu-west-1_abcdefghi
+USERNAME="jsabrokwahsenior@gmail.com"
+EMAIL="jsabrokwahsenior@gmail.com"
 PASSWORD="StrongP@ssw0rd!"  # Must meet Cognito password requirements
 NAME="Admin User"
 

@@ -203,7 +203,7 @@ Resources:
     Type: AWS::Serverless::Function  # Creates a Lambda function for authentication
     Properties:
       CodeUri: backend/auth/  # Path to the function code
-      Handler: auth.lambda_handler  # Function entry point
+      Handler: auth/auth.lambda_handler  # Function entry point
       Policies:  # IAM permissions for the function
         - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
             TableName: !Ref UsersTable  # References the Users table
@@ -232,13 +232,25 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /auth/register
             Method: post
+        Profile:  # Profile endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/profile
+            Method: get
+        UpdateProfile:  # Registration endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/profile
+            Method: post
 
   # Lambda Functions - Task Module
   TasksFunction:
     Type: AWS::Serverless::Function  # Creates a Lambda function for task management
     Properties:
       CodeUri: backend/tasks/  # Path to the function code
-      Handler: tasks.lambda_handler  # Function entry point
+      Handler: tasks/tasks.lambda_handler  # Function entry point
       Policies:  # IAM permissions for the function
         - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
             TableName: !Ref TasksTable  # References the Tasks table
@@ -285,7 +297,7 @@ Resources:
     Type: AWS::Serverless::Function  # Creates a Lambda function for notification management
     Properties:
       CodeUri: backend/notifications/  # Path to the function code
-      Handler: notifications.lambda_handler  # Function entry point
+      Handler: notifications/notifications.lambda_handler  # Function entry point
       Policies:  # IAM permissions for the function
         - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
             TableName: !Ref NotificationsTable  # References the Notifications table
@@ -296,7 +308,7 @@ Resources:
           NOTIFICATIONS_TABLE: !Ref NotificationsTable  # DynamoDB table name
           NOTIFICATION_TOPIC: !Ref NotificationTopic  # SNS topic ARN
       Events:  # API Gateway event triggers
-        GetNotifications:  # List user notifications endpoint
+        GetNotifications:  # Get user notifications endpoint
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
@@ -306,15 +318,62 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /notifications/{notificationId}/read  # Path parameter for notification ID
+            Path: /notifications/{notificationId}/read
             Method: put
+        UpdateSettings:  # Update notification settings endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /notifications/settings
+            Method: put
+        
+  # Lambda Functions - Admin Module
+  AdminFunction:
+    Type: AWS::Serverless::Function  # Creates a Lambda function for admin operations
+    Properties:
+      CodeUri: backend/admin/  # Path to the function code
+      Handler: admin/admin.lambda_handler  # Function entry point
+      Policies:  # IAM permissions for the function
+        - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
+            TableName: !Ref UsersTable  # References the Users table
+        - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
+            TableName: !Ref TasksTable  # References the Tasks table
+      Environment:  # Environment variables for the function
+        Variables:
+          USERS_TABLE: !Ref UsersTable  # DynamoDB table name
+          TASKS_TABLE: !Ref TasksTable  # DynamoDB table name
+      Events:  # API Gateway event triggers
+        GetUsers:  # Get all users endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/users
+            Method: get
+        GetTasksOverview:  # Get tasks overview endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/tasks/overview
+            Method: get
+        GetUpcomingDeadlines:  # Get upcoming deadlines endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/tasks/deadlines
+            Method: get
+        GetPerformanceMetrics:  # Get performance metrics endpoint
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/performance
+            Method: get
 
   # Lambda Function - Deadline Reminders
   DeadlineReminderFunction:
     Type: AWS::Serverless::Function  # Creates a Lambda function for deadline reminders
     Properties:
       CodeUri: backend/notifications/  # Path to the function code
-      Handler: deadline_reminders.lambda_handler  # Function entry point
+      Handler: notifications/deadline_reminders.lambda_handler  # Function entry point
       Policies:  # IAM permissions for the function
         - DynamoDBCrudPolicy:  # Allows CRUD operations on DynamoDB
             TableName: !Ref TasksTable  # References the Tasks table

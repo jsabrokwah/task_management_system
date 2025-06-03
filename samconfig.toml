@@ -1,5 +1,5 @@
 version = 0.1
-[task-management-system.deploy.parameters]
+[dev.deploy.parameters]
 stack_name = "task-management-system-dev"
 resolve_s3 = true
 s3_prefix = "task-management-system-dev"
