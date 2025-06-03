@@ -4,7 +4,7 @@
  */
 
 // Enable or disable mock API
-const MOCK_API_ENABLED = true;
+const MOCK_API_ENABLED = false;
 
 // Mock data
 const MOCK_DATA = {
@@ -203,28 +203,28 @@ if (MOCK_API_ENABLED) {
         const method = options.method || 'GET';
         
         // Authentication endpoints
-        if (endpoint === '/api/auth/login') {
+        if (endpoint === '/auth/login') {
             return handleLogin(options);
-        } else if (endpoint === '/api/auth/register') {
+        } else if (endpoint === '/auth/register') {
             return handleRegister(options);
-        } else if (endpoint === '/api/auth/profile') {
+        } else if (endpoint === '/auth/profile') {
             if (method === 'GET') {
                 return handleGetProfile();
             } else if (method === 'PUT') {
                 return handleUpdateProfile(options);
             }
-        } else if (endpoint === '/api/auth/change-password') {
+        } else if (endpoint === '/auth/change-password') {
             return handleChangePassword();
         }
         
         // Task endpoints
-        if (endpoint === '/api/tasks') {
+        if (endpoint === '/tasks') {
             if (method === 'GET') {
                 return handleGetTasks();
             } else if (method === 'POST') {
                 return handleCreateTask(options);
             }
-        } else if (endpoint.match(/^\/api\/tasks\/[a-z0-9]+$/)) {
+        } else if (endpoint.match(/^\/tasks\/[a-z0-9]+$/)) {
             const taskId = endpoint.split('/').pop();
             
             if (method === 'GET') {
@@ -234,23 +234,23 @@ if (MOCK_API_ENABLED) {
             } else if (method === 'DELETE') {
                 return handleDeleteTask(taskId);
             }
-        } else if (endpoint.match(/^\/api\/tasks\/[a-z0-9]+\/status$/)) {
+        } else if (endpoint.match(/^\/tasks\/[a-z0-9]+\/status$/)) {
             const taskId = endpoint.split('/')[3];
             return handleUpdateTaskStatus(taskId, options);
-        } else if (endpoint.match(/^\/api\/tasks\/[a-z0-9]+\/assign$/)) {
+        } else if (endpoint.match(/^\/tasks\/[a-z0-9]+\/assign$/)) {
             const taskId = endpoint.split('/')[3];
             return handleAssignTask(taskId, options);
         }
         
         // Notification endpoints
-        if (endpoint === '/api/notifications') {
+        if (endpoint === '/notifications') {
             return handleGetNotifications();
-        } else if (endpoint.match(/^\/api\/notifications\/[a-z0-9]+\/read$/)) {
+        } else if (endpoint.match(/^\/notifications\/[a-z0-9]+\/read$/)) {
             const notificationId = endpoint.split('/')[3];
             return handleMarkNotificationAsRead(notificationId);
-        } else if (endpoint === '/api/notifications/read-all') {
+        } else if (endpoint === '/notifications/read-all') {
             return handleMarkAllNotificationsAsRead();
-        } else if (endpoint === '/api/notifications/settings') {
+        } else if (endpoint === '/notifications/settings') {
             if (method === 'GET') {
                 return handleGetNotificationPreferences();
             } else if (method === 'PUT') {
@@ -259,13 +259,13 @@ if (MOCK_API_ENABLED) {
         }
         
         // Admin endpoints
-        if (endpoint === '/api/admin/users') {
+        if (endpoint === '/admin/users') {
             return handleGetUsers();
-        } else if (endpoint === '/api/admin/tasks/overview') {
+        } else if (endpoint === '/admin/tasks/overview') {
             return handleGetTaskStatistics();
-        } else if (endpoint === '/api/admin/tasks/deadlines') {
+        } else if (endpoint === '/admin/tasks/deadlines') {
             return handleGetUpcomingDeadlines();
-        } else if (endpoint === '/api/admin/performance') {
+        } else if (endpoint === '/admin/performance') {
             return handleGetTeamPerformance();
         }
         

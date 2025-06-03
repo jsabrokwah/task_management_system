@@ -23,7 +23,7 @@ class AuthService {
         try {
             showLoading();
             
-            const response = await fetch(`${CONFIG.API_URL}/api/auth/login`, {
+            const response = await fetch(`${CONFIG.API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -56,7 +56,7 @@ class AuthService {
         try {
             showLoading();
             
-            const response = await fetch(`${CONFIG.API_URL}/api/auth/register`, {
+            const response = await fetch(`${CONFIG.API_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -138,7 +138,7 @@ class AuthService {
         try {
             showLoading();
             
-            const response = await fetch(`${CONFIG.API_URL}/api/auth/profile`, {
+            const response = await fetch(`${CONFIG.API_URL}/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ class AuthService {
         // Set up new refresh timer
         this.refreshTimer = setInterval(async () => {
             try {
-                const response = await fetch(`${CONFIG.API_URL}/api/auth/refresh`, {
+                const response = await fetch(`${CONFIG.API_URL}/auth/refresh`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${this.token}`

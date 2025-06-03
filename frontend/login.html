@@ -148,7 +148,12 @@
             
             try {
                 showLoading();
-                await authService.register({ username, email, password });
+                await authService.register({ 
+                    username, 
+                    email, 
+                    password,
+                    name: username // Adding name field which is required by the backend
+                });
                 hideLoading();
                 
                 // Switch to login tab and show success message
