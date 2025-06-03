@@ -94,7 +94,7 @@ class AuthService {
         }
         
         // Redirect to login page
-        showAuthForms();
+        window.location.href = 'index.html';
     }
     
     /**

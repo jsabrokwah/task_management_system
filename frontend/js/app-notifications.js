@@ -226,13 +226,8 @@ async function markAllNotificationsAsRead() {
  * @param {string} taskId - Task ID
  */
 function viewNotificationTask(taskId) {
-    // Switch to tasks view
-    showView('tasks');
-    
-    // View task details
-    setTimeout(() => {
-        viewTask(taskId);
-    }, 500);
+    // Navigate to tasks page with task ID parameter
+    window.location.href = `tasks.html?taskId=${taskId}`;
 }
 
 // Initialize notifications when app is ready

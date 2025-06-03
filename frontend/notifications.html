@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Task Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="logo">
+                <h1>Task Management System</h1>
+            </div>
+            <div class="nav-links">
+                <a href="dashboard.html" id="dashboard-link">Dashboard</a>
+                <a href="tasks.html" id="tasks-link">Tasks</a>
+                <a href="notifications.html" id="notifications-link" class="active">Notifications <span id="notification-badge" class="badge hidden">0</span></a>
+                <a href="profile.html" id="profile-link">Profile</a>
+            </div>
+            <div class="user-info">
+                <span id="user-name">User</span>
+                <button id="logout-btn" class="btn btn-outline">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Notifications -->
+            <div id="notifications-container" class="notifications-container">
+                <h2>Notifications</h2>
+                <div class="notifications-header">
+                    <button id="mark-all-read" class="btn btn-outline">Mark All as Read</button>
+                    <div class="notifications-filter">
+                        <label for="notification-filter">Show:</label>
+                        <select id="notification-filter">
+                            <option value="all">All</option>
+                            <option value="unread">Unread</option>
+                            <option value="read">Read</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="notifications-list" class="notifications-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Task View Modal -->
+    <div id="task-view-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="view-task-title">Task Details</h2>
+            <div class="task-details">
+                <div class="detail-row">
+                    <span class="detail-label">Description:</span>
+                    <span id="view-task-description" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Priority:</span>
+                    <span id="view-task-priority" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span id="view-task-status" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Deadline:</span>
+                    <span id="view-task-deadline" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created By:</span>
+                    <span id="view-task-created-by" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Assigned To:</span>
+                    <span id="view-task-assigned-to" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created At:</span>
+                    <span id="view-task-created-at" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Notes:</span>
+                    <span id="view-task-notes" class="detail-value"></span>
+                </div>
+            </div>
+            <div class="task-actions">
+                <div id="team-member-actions">
+                    <button id="update-status-btn" class="btn btn-primary">Update Status</button>
+                </div>
+                <div id="admin-actions" class="admin-section hidden">
+                    <button id="edit-task-btn" class="btn btn-outline">Edit Task</button>
+                    <button id="delete-task-btn" class="btn btn-danger">Delete Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/mock-api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app-notifications.js"></script>
+    <script>
+        // Notifications page specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!authService.isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Update user info
+            const user = authService.getUser();
+            document.getElementById('user-name').textContent = user.name || user.username || user.email;
+            
+            // Show/hide admin sections
+            toggleAdminSections();
+            
+            // Load notifications data
+            refreshNotifications();
+            
+            // Start notification polling
+            startNotificationPolling();
+            
+            // Set up logout button
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                authService.logout();
+            });
+            
+            // Initialize notifications functionality
+            initNotifications();
+        });
+        
+        // Function to view task from notification
+        function viewTask(taskId) {
+            window.location.href = `tasks.html?taskId=${taskId}`;
+        }
+    </script>
+</body>
+</html>

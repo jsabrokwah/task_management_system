@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Task Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="logo">
+                <h1>Task Management System</h1>
+            </div>
+            <div class="nav-links">
+                <a href="dashboard.html" id="dashboard-link" class="active">Dashboard</a>
+                <a href="tasks.html" id="tasks-link">Tasks</a>
+                <a href="notifications.html" id="notifications-link">Notifications <span id="notification-badge" class="badge hidden">0</span></a>
+                <a href="profile.html" id="profile-link">Profile</a>
+            </div>
+            <div class="user-info">
+                <span id="user-name">User</span>
+                <button id="logout-btn" class="btn btn-outline">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard -->
+            <div id="dashboard-container" class="dashboard-container">
+                <h2>Dashboard</h2>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+                        <div class="stat-content">
+                            <h3>Total Tasks</h3>
+                            <p id="total-tasks">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-spinner"></i></div>
+                        <div class="stat-content">
+                            <h3>In Progress</h3>
+                            <p id="in-progress-tasks">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-content">
+                            <h3>Completed</h3>
+                            <p id="completed-tasks">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="stat-content">
+                            <h3>Overdue</h3>
+                            <p id="overdue-tasks">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin-only section -->
+                <div id="admin-dashboard" class="admin-section hidden">
+                    <h3>Team Performance</h3>
+                    <div class="team-performance">
+                        <canvas id="team-performance-chart"></canvas>
+                    </div>
+                    <h3>Upcoming Deadlines</h3>
+                    <div class="upcoming-deadlines">
+                        <table id="deadlines-table" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Assigned To</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deadlines-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Team member section -->
+                <div id="team-dashboard" class="team-section">
+                    <h3>My Tasks</h3>
+                    <div class="my-tasks">
+                        <div class="task-filters">
+                            <button class="btn btn-filter active" data-filter="all">All</button>
+                            <button class="btn btn-filter" data-filter="New">New</button>
+                            <button class="btn btn-filter" data-filter="In Progress">In Progress</button>
+                            <button class="btn btn-filter" data-filter="Completed">Completed</button>
+                            <button class="btn btn-filter" data-filter="Overdue">Overdue</button>
+                        </div>
+                        <div id="my-tasks-list" class="tasks-list"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Task View Modal -->
+    <div id="task-view-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="view-task-title">Task Details</h2>
+            <div class="task-details">
+                <div class="detail-row">
+                    <span class="detail-label">Description:</span>
+                    <span id="view-task-description" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Priority:</span>
+                    <span id="view-task-priority" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span id="view-task-status" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Deadline:</span>
+                    <span id="view-task-deadline" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created By:</span>
+                    <span id="view-task-created-by" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Assigned To:</span>
+                    <span id="view-task-assigned-to" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created At:</span>
+                    <span id="view-task-created-at" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Notes:</span>
+                    <span id="view-task-notes" class="detail-value"></span>
+                </div>
+            </div>
+            <div class="task-actions">
+                <div id="team-member-actions">
+                    <button id="update-status-btn" class="btn btn-primary">Update Status</button>
+                </div>
+                <div id="admin-actions" class="admin-section hidden">
+                    <button id="edit-task-btn" class="btn btn-outline">Edit Task</button>
+                    <button id="delete-task-btn" class="btn btn-danger">Delete Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="status-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Update Task Status</h2>
+            <form id="status-form">
+                <input type="hidden" id="status-task-id">
+                <div class="form-group">
+                    <label for="new-status">New Status</label>
+                    <select id="new-status" required>
+                        <option value="New">New</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="status-notes">Notes</label>
+                    <textarea id="status-notes" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancel-status">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/mock-api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        // Dashboard specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!authService.isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Update user info
+            const user = authService.getUser();
+            document.getElementById('user-name').textContent = user.name || user.username || user.email;
+            
+            // Show/hide admin sections
+            toggleAdminSections();
+            
+            // Load dashboard data
+            loadDashboard();
+            
+            // Start notification polling
+            startNotificationPolling();
+            
+            // Set up logout button
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                authService.logout();
+            });
+        });
+        
+        /**
+         * Load dashboard data
+         */
+        async function loadDashboard() {
+            try {
+                showLoading();
+                
+                // Get tasks for statistics
+                const tasks = await tasksService.getTasks();
+                
+                // Calculate statistics
+                const stats = {
+                    total: tasks.length,
+                    new: tasks.filter(task => task.Status === 'New').length,
+                    inProgress: tasks.filter(task => task.Status === 'In Progress').length,
+                    completed: tasks.filter(task => task.Status === 'Completed').length,
+                    overdue: tasks.filter(task => task.Status === 'Overdue').length
+                };
+                
+                // Update statistics display
+                document.getElementById('total-tasks').textContent = stats.total;
+                document.getElementById('in-progress-tasks').textContent = stats.inProgress;
+                document.getElementById('completed-tasks').textContent = stats.completed;
+                document.getElementById('overdue-tasks').textContent = stats.overdue;
+                
+                // If user is admin, load admin dashboard data
+                if (authService.isAdmin()) {
+                    await loadAdminDashboard();
+                }
+                
+                // Load team member dashboard data
+                await loadTeamDashboard(tasks);
+                
+                hideLoading();
+            } catch (error) {
+                console.error('Error refreshing dashboard:', error);
+                hideLoading();
+            }
+        }
+        
+        /**
+         * Load admin dashboard data
+         */
+        async function loadAdminDashboard() {
+            try {
+                // Get upcoming deadlines
+                const deadlinesData = await adminService.getUpcomingDeadlines();
+                const deadlines = deadlinesData.tasks;
+                
+                // Get team performance
+                const performance = await adminService.getTeamPerformance();
+                
+                // Update deadlines table
+                const deadlinesBody = document.getElementById('deadlines-body');
+                deadlinesBody.innerHTML = '';
+                
+                deadlines.forEach(task => {
+                    const row = document.createElement('tr');
+                    
+                    const deadline = new Date(task.Deadline);
+                    const formattedDeadline = deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY);
+                    
+                    row.innerHTML = `
+                        <td>${task.Title}</td>
+                        <td>${task.AssignedToName || 'Unassigned'}</td>
+                        <td>${formattedDeadline}</td>
+                        <td><span class="task-status status-${task.Status.toLowerCase().replace(' ', '-')}">${task.Status}</span></td>
+                    `;
+                    
+                    deadlinesBody.appendChild(row);
+                });
+                
+                // Update team performance chart
+                updateTeamPerformanceChart(performance);
+            } catch (error) {
+                console.error('Error loading admin dashboard:', error);
+            }
+        }
+        
+        /**
+         * Update team performance chart
+         * @param {Object} performance - Team performance data
+         */
+        function updateTeamPerformanceChart(performance) {
+            const ctx = document.getElementById('team-performance-chart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.teamChart) {
+                window.teamChart.destroy();
+            }
+            
+            // Create new chart
+            window.teamChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: performance.team_metrics.map(member => member.name),
+                    datasets: [
+                        {
+                            label: 'Completed Tasks',
+                            data: performance.team_metrics.map(member => member.completed_tasks),
+                            backgroundColor: '#2ecc71'
+                        },
+                        {
+                            label: 'In Progress Tasks',
+                            data: performance.team_metrics.map(member => member.total_tasks - member.completed_tasks - member.overdue_tasks),
+                            backgroundColor: '#3498db'
+                        },
+                        {
+                            label: 'Overdue Tasks',
+                            data: performance.team_metrics.map(member => member.overdue_tasks),
+                            backgroundColor: '#e74c3c'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Load team member dashboard data
+         * @param {Array} tasks - Tasks data
+         */
+        function loadTeamDashboard(tasks) {
+            // Filter tasks assigned to current user
+            const user = authService.getUser();
+            const myTasks = tasks.filter(task => task.AssignedTo === user.user_id);
+            
+            // Update my tasks list
+            const myTasksList = document.getElementById('my-tasks-list');
+            myTasksList.innerHTML = '';
+            
+            if (myTasks.length === 0) {
+                myTasksList.innerHTML = '<p>No tasks assigned to you.</p>';
+                return;
+            }
+            
+            // Sort tasks by deadline (closest first)
+            myTasks.sort((a, b) => new Date(a.Deadline) - new Date(b.Deadline));
+            
+            // Display tasks
+            myTasks.forEach(task => {
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
+                taskCard.dataset.taskId = task.TaskID;
+                taskCard.dataset.status = task.Status;
+                
+                const deadline = new Date(task.Deadline);
+                const formattedDeadline = deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY);
+                
+                taskCard.innerHTML = `
+                    <div class="task-card-header">
+                        <h3 class="task-card-title">${task.Title}</h3>
+                        <span class="task-card-priority priority-${task.Priority.toLowerCase()}">${task.Priority}</span>
+                    </div>
+                    <div class="task-card-body">
+                        <p class="task-card-description">${task.Description}</p>
+                        <div class="task-card-meta">
+                            <span>Deadline: ${formattedDeadline}</span>
+                        </div>
+                    </div>
+                    <div class="task-card-footer">
+                        <span class="task-status status-${task.Status.toLowerCase().replace(' ', '-')}">${task.Status}</span>
+                        <button class="btn btn-outline view-task-btn">View Details</button>
+                    </div>
+                `;
+                
+                // Add event listener to view task button
+                taskCard.querySelector('.view-task-btn').addEventListener('click', () => {
+                    window.location.href = `tasks.html?taskId=${task.TaskID}`;
+                });
+                
+                myTasksList.appendChild(taskCard);
+            });
+            
+            // Add event listeners to filter buttons
+            document.querySelectorAll('.task-filters .btn-filter').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    // Update active button
+                    document.querySelectorAll('.task-filters .btn-filter').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    e.target.classList.add('active');
+                    
+                    // Get filter value
+                    const filter = e.target.dataset.filter;
+                    
+                    // Filter tasks
+                    document.querySelectorAll('.task-card').forEach(card => {
+                        if (filter === 'all' || card.dataset.status === filter) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        }
+    </script>
+</body>
+</html>

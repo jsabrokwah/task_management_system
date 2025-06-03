@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Task Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="logo">
+                <h1>Task Management System</h1>
+            </div>
+            <div class="nav-links">
+                <a href="dashboard.html" id="dashboard-link">Dashboard</a>
+                <a href="tasks.html" id="tasks-link">Tasks</a>
+                <a href="notifications.html" id="notifications-link">Notifications <span id="notification-badge" class="badge hidden">0</span></a>
+                <a href="profile.html" id="profile-link" class="active">Profile</a>
+            </div>
+            <div class="user-info">
+                <span id="user-name">User</span>
+                <button id="logout-btn" class="btn btn-outline">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- User Profile -->
+            <div id="profile-container" class="profile-container">
+                <h2>User Profile</h2>
+                <div class="profile-content">
+                    <div class="profile-info">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="profile-details">
+                            <h3 id="profile-username">Username</h3>
+                            <p id="profile-email">email@example.com</p>
+                            <p id="profile-role">Role: Team Member</p>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-form">
+                        <h3>Update Profile</h3>
+                        <form id="update-profile-form">
+                            <div class="form-group">
+                                <label for="update-email">Email</label>
+                                <input type="email" id="update-email">
+                            </div>
+                            <div class="form-group">
+                                <label for="current-password">Current Password</label>
+                                <input type="password" id="current-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-password">New Password</label>
+                                <input type="password" id="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm-new-password">Confirm New Password</label>
+                                <input type="password" id="confirm-new-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </form>
+                    </div>
+                    
+                    <div class="notification-preferences">
+                        <h3>Notification Preferences</h3>
+                        <form id="notification-preferences-form">
+                            <div class="form-check">
+                                <input type="checkbox" id="email-notifications" checked>
+                                <label for="email-notifications">Email Notifications</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="task-assignments" checked>
+                                <label for="task-assignments">Task Assignments</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="deadline-reminders" checked>
+                                <label for="deadline-reminders">Deadline Reminders</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="status-updates" checked>
+                                <label for="status-updates">Status Updates</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Preferences</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/mock-api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app-profile.js"></script>
+    <script>
+        // Profile page specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!authService.isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Update user info
+            const user = authService.getUser();
+            document.getElementById('user-name').textContent = user.name || user.username || user.email;
+            
+            // Show/hide admin sections
+            toggleAdminSections();
+            
+            // Load profile data
+            refreshProfile();
+            
+            // Start notification polling
+            startNotificationPolling();
+            
+            // Set up logout button
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                authService.logout();
+            });
+            
+            // Initialize profile functionality
+            initProfile();
+        });
+    </script>
+</body>
+</html>
