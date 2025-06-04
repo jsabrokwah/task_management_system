@@ -1,9 +1,9 @@
 /**
  * Configuration settings for the Task Management System
  */
-const CONFIG = {
+window.CONFIG = {
     // API endpoint base URL - replace with your actual API Gateway URL in production
-    API_URL: 'https://bl547u5t4l.execute-api.eu-west-1.amazonaws.com/dev',
+    API_URL: 'https://6vab65zkzc.execute-api.eu-west-1.amazonaws.com/dev',
     
     // Authentication settings
     AUTH: {

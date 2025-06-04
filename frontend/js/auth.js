@@ -4,12 +4,19 @@
  */
 class AuthService {
     constructor() {
-        this.token = localStorage.getItem(CONFIG.AUTH.TOKEN_KEY);
-        this.user = JSON.parse(localStorage.getItem(CONFIG.AUTH.USER_KEY) || 'null');
-        
-        // Set up token refresh if user is logged in
-        if (this.token) {
-            this.setupTokenRefresh();
+        // Check if CONFIG is defined before using it
+        if (typeof CONFIG !== 'undefined' && CONFIG.AUTH) {
+            this.token = localStorage.getItem(CONFIG.AUTH.TOKEN_KEY);
+            this.user = JSON.parse(localStorage.getItem(CONFIG.AUTH.USER_KEY) || 'null');
+            
+            // Set up token refresh if user is logged in
+            if (this.token) {
+                this.setupTokenRefresh();
+            }
+        } else {
+            this.token = null;
+            this.user = null;
+            console.error('CONFIG is not defined. Authentication service initialization delayed.');
         }
     }
     
@@ -216,4 +223,4 @@ class AuthService {
 }
 
 // Create and export auth service instance
-const authService = new AuthService();
+window.authService = new AuthService();
