@@ -4,19 +4,66 @@
  */
 class AuthService {
     constructor() {
-        // Check if CONFIG is defined before using it
-        if (typeof CONFIG !== 'undefined' && CONFIG.AUTH) {
-            this.token = localStorage.getItem(CONFIG.AUTH.TOKEN_KEY);
-            this.user = JSON.parse(localStorage.getItem(CONFIG.AUTH.USER_KEY) || 'null');
+        this.token = null;
+        this.user = null;
+        this.refreshTimer = null;
+        this.initialized = false;
+        this.initRetryCount = 0;
+        this.maxRetries = 5;
+    }
+    
+    /**
+     * Initialize the auth service - call this after CONFIG is loaded
+     */
+    init() {
+        if (this.initialized) return;
+        
+        try {
+            // Check if CONFIG is defined
+            if (typeof CONFIG === 'undefined' || !CONFIG.AUTH) {
+                if (this.initRetryCount < this.maxRetries) {
+                    console.warn('CONFIG not ready, retrying initialization in 100ms');
+                    this.initRetryCount++;
+                    setTimeout(() => this.init(), 100);
+                    return;
+                } else {
+                    console.error('CONFIG is not defined after multiple retries. Cannot initialize AuthService.');
+                    return;
+                }
+            }
+            
+            try {
+                // Safely get token from localStorage
+                const tokenValue = localStorage.getItem(CONFIG.AUTH.TOKEN_KEY);
+                this.token = tokenValue && tokenValue !== 'null' && tokenValue !== 'undefined' ? tokenValue : null;
+                
+                // Safely parse user data
+                const userJson = localStorage.getItem(CONFIG.AUTH.USER_KEY);
+                if (userJson && userJson !== 'null' && userJson !== 'undefined') {
+                    try {
+                        this.user = JSON.parse(userJson);
+                    } catch (e) {
+                        console.warn('Invalid user data in localStorage, clearing it');
+                        localStorage.removeItem(CONFIG.AUTH.USER_KEY);
+                        this.user = null;
+                    }
+                } else {
+                    this.user = null;
+                }
+            } catch (storageError) {
+                console.warn('Error accessing localStorage:', storageError);
+                this.token = null;
+                this.user = null;
+            }
             
             // Set up token refresh if user is logged in
-            if (this.token) {
+            if (this.isAuthenticated()) {
                 this.setupTokenRefresh();
             }
-        } else {
-            this.token = null;
-            this.user = null;
-            console.error('CONFIG is not defined. Authentication service initialization delayed.');
+            
+            this.initialized = true;
+        } catch (error) {
+            console.error('Error initializing AuthService:', error);
         }
     }
     
@@ -28,7 +75,11 @@ class AuthService {
      */
     async login(username, password) {
         try {
-            showLoading();
+            if (typeof showLoading === 'function') showLoading();
+            
+            if (typeof CONFIG === 'undefined' || !CONFIG || !CONFIG.API_URL) {
+                throw new Error('Configuration not available');
+            }
             
             const response = await fetch(`${CONFIG.API_URL}/auth/login`, {
                 method: 'POST',
@@ -44,12 +95,17 @@ class AuthService {
             }
             
             const data = await response.json();
+            
+            if (!data.token || !data.user) {
+                throw new Error('Invalid response from server');
+            }
+            
             this.setSession(data.token, data.user);
             
-            hideLoading();
+            if (typeof hideLoading === 'function') hideLoading();
             return data.user;
         } catch (error) {
-            hideLoading();
+            if (typeof hideLoading === 'function') hideLoading();
             throw error;
         }
     }
@@ -61,7 +117,11 @@ class AuthService {
      */
     async register(userData) {
         try {
-            showLoading();
+            if (typeof showLoading === 'function') showLoading();
+            
+            if (typeof CONFIG === 'undefined' || !CONFIG || !CONFIG.API_URL) {
+                throw new Error('Configuration not available');
+            }
             
             const response = await fetch(`${CONFIG.API_URL}/auth/register`, {
                 method: 'POST',
@@ -78,10 +138,14 @@ class AuthService {
             
             const data = await response.json();
             
-            hideLoading();
+            if (!data.user) {
+                throw new Error('Invalid response from server');
+            }
+            
+            if (typeof hideLoading === 'function') hideLoading();
             return data.user;
         } catch (error) {
-            hideLoading();
+            if (typeof hideLoading === 'function') hideLoading();
             throw error;
         }
     }
@@ -90,14 +154,26 @@ class AuthService {
      * Log out the current user
      */
     logout() {
-        localStorage.removeItem(CONFIG.AUTH.TOKEN_KEY);
-        localStorage.removeItem(CONFIG.AUTH.USER_KEY);
+        try {
+            if (typeof CONFIG !== 'undefined' && CONFIG && CONFIG.AUTH) {
+                localStorage.removeItem(CONFIG.AUTH.TOKEN_KEY);
+                localStorage.removeItem(CONFIG.AUTH.USER_KEY);
+            } else {
+                // Fallback if CONFIG is not available
+                localStorage.removeItem('tms_token');
+                localStorage.removeItem('tms_user');
+            }
+        } catch (e) {
+            console.warn('Error clearing localStorage during logout:', e);
+        }
+        
         this.token = null;
         this.user = null;
         
         // Clear any refresh timers
         if (this.refreshTimer) {
             clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
         }
         
         // Redirect to login page
@@ -125,7 +201,23 @@ class AuthService {
      * @returns {boolean} - True if authenticated, false otherwise
      */
     isAuthenticated() {
-        return !!this.token;
+        return !!(this.token && this.user && this.isTokenValid());
+    }
+    
+    /**
+     * Check if the current token is valid
+     * @returns {boolean} - True if token is valid, false otherwise
+     */
+    isTokenValid() {
+        if (!this.token) return false;
+        
+        try {
+            // Simple validation - check if token has three parts separated by dots
+            const parts = this.token.split('.');
+            return parts.length === 3;
+        } catch (e) {
+            return false;
+        }
     }
     
     /**
@@ -133,7 +225,19 @@ class AuthService {
      * @returns {boolean} - True if user is admin, false otherwise
      */
     isAdmin() {
-        return this.user && this.user.role === CONFIG.USER_ROLES.ADMIN;
+        if (!this.user || !this.user.role) return false;
+        
+        try {
+            if (typeof CONFIG !== 'undefined' && CONFIG && CONFIG.USER_ROLES) {
+                return this.user.role === CONFIG.USER_ROLES.ADMIN;
+            } else {
+                // Fallback if CONFIG is not available
+                return this.user.role === 'admin';
+            }
+        } catch (e) {
+            console.warn('Error checking admin status:', e);
+            return false;
+        }
     }
     
     /**
@@ -143,7 +247,15 @@ class AuthService {
      */
     async updateProfile(profileData) {
         try {
-            showLoading();
+            if (typeof showLoading === 'function') showLoading();
+            
+            if (typeof CONFIG === 'undefined' || !CONFIG || !CONFIG.API_URL) {
+                throw new Error('Configuration not available');
+            }
+            
+            if (!this.isAuthenticated()) {
+                throw new Error('User not authenticated');
+            }
             
             const response = await fetch(`${CONFIG.API_URL}/auth/profile`, {
                 method: 'PUT',
@@ -163,12 +275,20 @@ class AuthService {
             
             // Update stored user data
             this.user = data.user;
-            localStorage.setItem(CONFIG.AUTH.USER_KEY, JSON.stringify(data.user));
+            try {
+                if (typeof CONFIG !== 'undefined' && CONFIG && CONFIG.AUTH) {
+                    localStorage.setItem(CONFIG.AUTH.USER_KEY, JSON.stringify(data.user));
+                } else {
+                    localStorage.setItem('tms_user', JSON.stringify(data.user));
+                }
+            } catch (storageError) {
+                console.warn('Failed to store user data in localStorage:', storageError);
+            }
             
-            hideLoading();
+            if (typeof hideLoading === 'function') hideLoading();
             return data.user;
         } catch (error) {
-            hideLoading();
+            if (typeof hideLoading === 'function') hideLoading();
             throw error;
         }
     }
@@ -182,8 +302,18 @@ class AuthService {
         this.token = token;
         this.user = user;
         
-        localStorage.setItem(CONFIG.AUTH.TOKEN_KEY, token);
-        localStorage.setItem(CONFIG.AUTH.USER_KEY, JSON.stringify(user));
+        try {
+            if (typeof CONFIG !== 'undefined' && CONFIG && CONFIG.AUTH) {
+                localStorage.setItem(CONFIG.AUTH.TOKEN_KEY, token);
+                localStorage.setItem(CONFIG.AUTH.USER_KEY, JSON.stringify(user));
+            } else {
+                // Fallback if CONFIG is not available
+                localStorage.setItem('tms_token', token);
+                localStorage.setItem('tms_user', JSON.stringify(user));
+            }
+        } catch (storageError) {
+            console.warn('Failed to store session data in localStorage:', storageError);
+        }
         
         this.setupTokenRefresh();
     }
@@ -197,30 +327,97 @@ class AuthService {
             clearInterval(this.refreshTimer);
         }
         
+        // Only set up refresh if CONFIG is available
+        if (typeof CONFIG === 'undefined' || !CONFIG || !CONFIG.AUTH || !CONFIG.AUTH.REFRESH_INTERVAL) {
+            console.warn('CONFIG not properly defined for token refresh');
+            return;
+        }
+        
         // Set up new refresh timer
         this.refreshTimer = setInterval(async () => {
-            try {
-                const response = await fetch(`${CONFIG.API_URL}/auth/refresh`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${this.token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    this.token = data.token;
-                    localStorage.setItem(CONFIG.AUTH.TOKEN_KEY, data.token);
-                } else {
-                    // If refresh fails, log out the user
-                    this.logout();
-                }
-            } catch (error) {
-                console.error('Token refresh failed:', error);
+            if (!this.isAuthenticated()) {
+                console.warn('Not authenticated, cancelling token refresh');
+                this.logout();
+                return;
             }
+            
+            let retries = 0;
+            const maxRetries = 3;
+            
+            const attemptRefresh = async () => {
+                try {
+                    const response = await fetch(`${CONFIG.API_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.token = data.token;
+                        try {
+                            localStorage.setItem(CONFIG.AUTH.TOKEN_KEY, data.token);
+                        } catch (storageError) {
+                            console.warn('Failed to store token in localStorage:', storageError);
+                        }
+                    } else {
+                        // If refresh fails with an error response, log out the user
+                        console.warn('Token refresh failed with status:', response.status);
+                        this.logout();
+                    }
+                } catch (error) {
+                    console.error('Token refresh network error:', error);
+                    retries++;
+                    if (retries < maxRetries) {
+                        console.log(`Retrying token refresh (${retries}/${maxRetries})...`);
+                        setTimeout(attemptRefresh, 5000); // Retry after 5 seconds
+                    } else {
+                        console.error('Max token refresh retries reached, logging out');
+                        this.logout();
+                    }
+                }
+            };
+            
+            attemptRefresh();
         }, CONFIG.AUTH.REFRESH_INTERVAL);
     }
 }
 
-// Create and export auth service instance
+// Create auth service instance but don't initialize yet
 window.authService = new AuthService();
+
+// Custom event for when CONFIG is ready
+window.configReady = false;
+window.addEventListener('config-ready', () => {
+    if (window.authService && !window.authService.initialized) {
+        window.authService.init();
+    }
+});
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if CONFIG is already available
+    if (typeof CONFIG !== 'undefined' && CONFIG) {
+        window.configReady = true;
+        window.dispatchEvent(new Event('config-ready'));
+    } else {
+        // Set up a MutationObserver to watch for CONFIG
+        const checkConfigInterval = setInterval(() => {
+            if (typeof CONFIG !== 'undefined' && CONFIG) {
+                clearInterval(checkConfigInterval);
+                window.configReady = true;
+                window.dispatchEvent(new Event('config-ready'));
+            }
+        }, 50);
+        
+        // Fallback timeout - initialize anyway after 2 seconds
+        setTimeout(() => {
+            clearInterval(checkConfigInterval);
+            if (!window.configReady && window.authService) {
+                console.warn('CONFIG not detected after timeout, initializing AuthService anyway');
+                window.authService.init();
+            }
+        }, 2000);
+    }
+});

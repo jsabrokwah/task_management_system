@@ -1,0 +1,19 @@
+Key                 UserPoolClientId                                                                                                                                                              
+Description         Cognito User Pool Client ID                                                                                                                                                   
+Value               2usj05vj5970m96q2ufmu15uke                                                                                                                                                    
+
+Key                 UserPoolId                                                                                                                                                                    
+Description         Cognito User Pool ID                                                                                                                                                          
+Value               eu-west-1_NNSBrAyHv                                                                                                                                                           
+
+Key                 CloudFrontURL                                                                                                                                                                 
+Description         CloudFront Distribution URL                                                                                                                                                   
+Value               https://d2i5owkdd3orsr.cloudfront.net                                                                                                                                         
+
+Key                 WebsiteBucketName                                                                                                                                                             
+Description         S3 bucket for website hosting                                                                                                                                                 
+Value               task-management-frontend-dev-288761743948                                                                                                                                     
+
+Key                 ApiEndpoint                                                                                                                                                                   
+Description         API Gateway endpoint URL                                                                                                                                                      
+Value               https://5ouvj4sswb.execute-api.eu-west-1.amazonaws.com/dev/   

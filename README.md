@@ -43,3 +43,27 @@ The Task Management System is a serverless application designed for field teams,
 
 To get started with the Task Management System, refer to the [Implementation Guide](docs/implementation_guide.md) for detailed instructions on setting up the development environment, deploying the application, and testing the functionality.
 
+### Quick Start
+
+1. Deploy the application using AWS SAM:
+   ```bash
+   sam build
+   sam deploy --guided
+   ```
+
+2. Deploy the frontend to S3:
+   ```bash
+   # Get deployment outputs and update frontend config
+   aws s3 sync ./frontend/ s3://your-frontend-bucket/
+   ```
+
+3. Create an admin user:
+   ```bash
+   # Update variables in the script
+   cd backend
+   chmod +x create_admin_user.sh
+   ./create_admin_user.sh
+   ```
+
+4. Access the application using the CloudFront URL from the deployment outputs.
+

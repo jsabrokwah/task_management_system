@@ -9,6 +9,7 @@ This directory contains the backend implementation for the Task Management Syste
 - `common/`: Shared utilities and helpers
 - `notifications/`: Notification system API endpoints
 - `tasks/`: Task management API endpoints
+- `create_admin_user.sh`: Script to create an admin user in Cognito and DynamoDB
 
 ## Setup and Deployment
 
@@ -38,6 +39,28 @@ export NOTIFICATION_TOPIC=your-sns-topic-arn
 ### AWS Deployment
 
 The backend is deployed using AWS SAM. See the root directory's README for deployment instructions.
+
+### Admin User Creation
+
+After deployment, you can create an admin user using the provided script:
+
+```bash
+# Update the script variables with your values
+# - USER_POOL_ID: Your Cognito User Pool ID
+# - USERNAME: Admin username (email)
+# - EMAIL: Admin email address
+# - PASSWORD: Strong password meeting Cognito requirements
+# - NAME: Admin's full name
+# - ENVIRONMENT: "dev" or "prod" based on your deployment
+
+# Make the script executable
+chmod +x create_admin_user.sh
+
+# Run the script
+./create_admin_user.sh
+```
+
+This script creates an admin user in both Cognito and DynamoDB with the appropriate role and permissions.
 
 ## API Endpoints
 

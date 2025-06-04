@@ -186,42 +186,73 @@
         <div class="spinner"></div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts - Load in correct order -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
     <script src="js/mock-api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/common.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/notifications.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/admin.js"></script>
     <script>
-        // Dashboard specific initialization
-        document.addEventListener('DOMContentLoaded', () => {
+        // Dashboard initialization - wait for all dependencies
+        function initializeDashboard() {
+            // Check if all required services are available
+            if (!window.authService || !window.CONFIG) {
+                console.log('Dependencies not ready, retrying...');
+                setTimeout(initializeDashboard, 100);
+                return;
+            }
+            
+            // Initialize auth service if not already done
+            if (!authService.initialized) {
+                authService.init();
+            }
+            
             // Check authentication
             if (!authService.isAuthenticated()) {
+                console.log('User not authenticated, redirecting to login');
                 window.location.href = 'index.html';
                 return;
             }
             
             // Update user info
             const user = authService.getUser();
-            document.getElementById('user-name').textContent = user.name || user.username || user.email;
+            if (user) {
+                const userNameElement = document.getElementById('user-name');
+                if (userNameElement) {
+                    userNameElement.textContent = user.name || user.username || user.email || 'User';
+                }
+            }
             
             // Show/hide admin sections
-            toggleAdminSections();
+            if (typeof toggleAdminSections === 'function') {
+                toggleAdminSections();
+            }
             
             // Load dashboard data
             loadDashboard();
             
             // Start notification polling
-            startNotificationPolling();
+            if (typeof startNotificationPolling === 'function') {
+                startNotificationPolling();
+            }
             
             // Set up logout button
-            document.getElementById('logout-btn').addEventListener('click', () => {
-                authService.logout();
-            });
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    authService.logout();
+                });
+            }
+        }
+        
+        // Dashboard specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for all scripts to load
+            setTimeout(initializeDashboard, 200);
         });
         
         /**
@@ -229,7 +260,14 @@
          */
         async function loadDashboard() {
             try {
-                showLoading();
+                if (typeof showLoading === 'function') showLoading();
+                
+                // Check if tasksService is available
+                if (typeof tasksService === 'undefined') {
+                    console.error('tasksService is not available');
+                    if (typeof hideLoading === 'function') hideLoading();
+                    return;
+                }
                 
                 // Get tasks for statistics
                 const tasks = await tasksService.getTasks();
@@ -244,10 +282,17 @@
                 };
                 
                 // Update statistics display
-                document.getElementById('total-tasks').textContent = stats.total;
-                document.getElementById('in-progress-tasks').textContent = stats.inProgress;
-                document.getElementById('completed-tasks').textContent = stats.completed;
-                document.getElementById('overdue-tasks').textContent = stats.overdue;
+                const elements = {
+                    total: document.getElementById('total-tasks'),
+                    inProgress: document.getElementById('in-progress-tasks'),
+                    completed: document.getElementById('completed-tasks'),
+                    overdue: document.getElementById('overdue-tasks')
+                };
+                
+                if (elements.total) elements.total.textContent = stats.total;
+                if (elements.inProgress) elements.inProgress.textContent = stats.inProgress;
+                if (elements.completed) elements.completed.textContent = stats.completed;
+                if (elements.overdue) elements.overdue.textContent = stats.overdue;
                 
                 // If user is admin, load admin dashboard data
                 if (authService.isAdmin()) {
@@ -257,10 +302,10 @@
                 // Load team member dashboard data
                 await loadTeamDashboard(tasks);
                 
-                hideLoading();
+                if (typeof hideLoading === 'function') hideLoading();
             } catch (error) {
-                console.error('Error refreshing dashboard:', error);
-                hideLoading();
+                console.error('Error loading dashboard:', error);
+                if (typeof hideLoading === 'function') hideLoading();
             }
         }
         
@@ -269,6 +314,12 @@
          */
         async function loadAdminDashboard() {
             try {
+                // Check if adminService is available
+                if (typeof adminService === 'undefined') {
+                    console.warn('adminService is not available');
+                    return;
+                }
+                
                 // Get upcoming deadlines
                 const deadlinesData = await adminService.getUpcomingDeadlines();
                 const deadlines = deadlinesData.tasks;
@@ -278,23 +329,27 @@
                 
                 // Update deadlines table
                 const deadlinesBody = document.getElementById('deadlines-body');
-                deadlinesBody.innerHTML = '';
-                
-                deadlines.forEach(task => {
-                    const row = document.createElement('tr');
+                if (deadlinesBody) {
+                    deadlinesBody.innerHTML = '';
                     
-                    const deadline = new Date(task.Deadline);
-                    const formattedDeadline = deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY);
-                    
-                    row.innerHTML = `
-                        <td>${task.Title}</td>
-                        <td>${task.AssignedToName || 'Unassigned'}</td>
-                        <td>${formattedDeadline}</td>
-                        <td><span class="task-status status-${task.Status.toLowerCase().replace(' ', '-')}">${task.Status}</span></td>
-                    `;
-                    
-                    deadlinesBody.appendChild(row);
-                });
+                    deadlines.forEach(task => {
+                        const row = document.createElement('tr');
+                        
+                        const deadline = new Date(task.Deadline);
+                        const formattedDeadline = CONFIG && CONFIG.DATE_FORMAT ? 
+                            deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY) :
+                            deadline.toLocaleDateString();
+                        
+                        row.innerHTML = `
+                            <td>${task.Title}</td>
+                            <td>${task.AssignedToName || 'Unassigned'}</td>
+                            <td>${formattedDeadline}</td>
+                            <td><span class="task-status status-${task.Status.toLowerCase().replace(' ', '-')}">${task.Status}</span></td>
+                        `;
+                        
+                        deadlinesBody.appendChild(row);
+                    });
+                }
                 
                 // Update team performance chart
                 updateTeamPerformanceChart(performance);
@@ -308,7 +363,10 @@
          * @param {Object} performance - Team performance data
          */
         function updateTeamPerformanceChart(performance) {
-            const ctx = document.getElementById('team-performance-chart').getContext('2d');
+            const ctx = document.getElementById('team-performance-chart');
+            if (!ctx || !performance || !performance.team_metrics) return;
+            
+            const context = ctx.getContext('2d');
             
             // Destroy existing chart if it exists
             if (window.teamChart) {
@@ -316,7 +374,7 @@
             }
             
             // Create new chart
-            window.teamChart = new Chart(ctx, {
+            window.teamChart = new Chart(context, {
                 type: 'bar',
                 data: {
                     labels: performance.team_metrics.map(member => member.name),
@@ -363,10 +421,14 @@
         function loadTeamDashboard(tasks) {
             // Filter tasks assigned to current user
             const user = authService.getUser();
+            if (!user || !Array.isArray(tasks)) return;
+            
             const myTasks = tasks.filter(task => task.AssignedTo === user.user_id);
             
             // Update my tasks list
             const myTasksList = document.getElementById('my-tasks-list');
+            if (!myTasksList) return;
+            
             myTasksList.innerHTML = '';
             
             if (myTasks.length === 0) {
@@ -385,7 +447,9 @@
                 taskCard.dataset.status = task.Status;
                 
                 const deadline = new Date(task.Deadline);
-                const formattedDeadline = deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY);
+                const formattedDeadline = CONFIG && CONFIG.DATE_FORMAT ? 
+                    deadline.toLocaleDateString('en-US', CONFIG.DATE_FORMAT.DISPLAY) :
+                    deadline.toLocaleDateString();
                 
                 taskCard.innerHTML = `
                     <div class="task-card-header">
@@ -405,9 +469,12 @@
                 `;
                 
                 // Add event listener to view task button
-                taskCard.querySelector('.view-task-btn').addEventListener('click', () => {
-                    window.location.href = `tasks.html?taskId=${task.TaskID}`;
-                });
+                const viewBtn = taskCard.querySelector('.view-task-btn');
+                if (viewBtn) {
+                    viewBtn.addEventListener('click', () => {
+                        window.location.href = `tasks.html?taskId=${task.TaskID}`;
+                    });
+                }
                 
                 myTasksList.appendChild(taskCard);
             });

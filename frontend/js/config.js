@@ -3,13 +3,14 @@
  */
 window.CONFIG = {
     // API endpoint base URL - replace with your actual API Gateway URL in production
-    API_URL: 'https://6vab65zkzc.execute-api.eu-west-1.amazonaws.com/dev',
+    API_URL: 'https://5ouvj4sswb.execute-api.eu-west-1.amazonaws.com/dev',
     
     // Authentication settings
     AUTH: {
         TOKEN_KEY: 'tms_token',
         USER_KEY: 'tms_user',
-        REFRESH_INTERVAL: 1800000 // 30 minutes in milliseconds
+        REFRESH_INTERVAL: 1800000, // 30 minutes in milliseconds
+        REFRESH_RETRY_INTERVAL: 5000 // 5 seconds between retries
     },
     
     // Task status options

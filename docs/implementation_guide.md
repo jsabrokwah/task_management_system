@@ -153,15 +153,20 @@ echo "Frontend deployed at: $DISTRIBUTION_URL"
 
 ### 1. Create Admin User
 
-Update the `create_admin_user.sh` script with your User Pool ID and desired admin credentials:
+The `create_admin_user.sh` script is provided to create an admin user in both Cognito and DynamoDB. Update the script with your User Pool ID and desired admin credentials:
 
 ```bash
 # Navigate to backend directory
 cd /path/to/project/backend
 
-# Update the script with your User Pool ID
-USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name task-management-system-dev --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)
-sed -i "s/YOUR_USER_POOL_ID/$USER_POOL_ID/g" create_admin_user.sh
+# Update the script variables with your values:
+# - USER_POOL_ID: Your Cognito User Pool ID
+# - USERNAME: Admin username (email)
+# - EMAIL: Admin email address
+# - PASSWORD: Strong password meeting Cognito requirements
+# - NAME: Admin's full name
+# - ENVIRONMENT: "dev" or "prod" based on your deployment
+# - TABLE_NAME: DynamoDB Users table name (automatically set based on ENVIRONMENT)
 
 # Make the script executable
 chmod +x create_admin_user.sh
@@ -169,6 +174,12 @@ chmod +x create_admin_user.sh
 # Run the script to create admin user
 ./create_admin_user.sh
 ```
+
+The script will:
+1. Create the user in Cognito with admin role
+2. Set a permanent password (bypassing temporary password flow)
+3. Generate a UUID for the user
+4. Add the user to the DynamoDB Users table with admin role
 
 ### 2. Verify Deployment
 

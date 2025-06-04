@@ -4,4 +4,3 @@ venv/*
 */venv
 .aws-sam
 __pycache__
-sam-output.txt

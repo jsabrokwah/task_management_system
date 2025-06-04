@@ -95,6 +95,7 @@ The Task Management System is a serverless application designed for field teams,
 - Set up Cognito User Pool
 - Configure S3 bucket for frontend hosting
 - Set up CI/CD pipeline for deployment
+- Create admin user creation script for initial system setup
 
 ### Phase 2: Backend Development
 - Develop Flask API structure
@@ -125,6 +126,7 @@ The Task Management System is a serverless application designed for field teams,
 - Finalize technical documentation
 - Prepare deployment scripts
 - Deploy to production environment
+- Create initial admin user using the admin user creation script
 - Conduct final testing in production environment
 
 ## API Endpoints
