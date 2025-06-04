@@ -128,6 +128,7 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH  # Username and password authentication
         - ALLOW_REFRESH_TOKEN_AUTH  # Allow refresh tokens for session extension
         - ALLOW_USER_SRP_AUTH  # Secure Remote Password protocol
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH  # Allow admin authentication with username and password
 
   # SNS Topic for Notifications
   NotificationTopic:
